@@ -122,15 +122,21 @@
             padding: 16px;
             border: 0;
             outline: 0;
-            resize: vertical;
+            resize: none;
             color: #424242;
             background: #fff;
             font-family: Menlo, Monaco, Consolas, monospace;
             font-size: 14px;
             line-height: 1.7;
             overflow: auto;
+            scrollbar-width: none;
             white-space: pre-wrap;
             word-break: break-word;
+        }
+
+        textarea::-webkit-scrollbar,
+        .output::-webkit-scrollbar {
+            display: none;
         }
 
         textarea:focus {

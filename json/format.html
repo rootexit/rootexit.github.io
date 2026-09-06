@@ -267,6 +267,46 @@
     <script>
         const input = document.querySelector('#input-json');
         const output = document.querySelector('#output-json');
+
+        // 监听键盘事件
+        input.addEventListener('keydown', function (e) {
+            // 1. 判断是否按下了 Tab 键 (keyCode 9)
+            if (e.key === 'Tab') {
+                // 2. 阻止默认行为（即切出输入框）
+                e.preventDefault();
+
+                // 3. 获取光标位置
+                const start = this.selectionStart;
+                const end = this.selectionEnd;
+
+
+                // 4. 在光标处插入 4 个空格（作为 Tab 的替代）
+                // --- 判断是否按下了 Shift (Shift + Tab) ---
+                if (e.shiftKey) {
+                    // 【删除逻辑】
+                    // 前提条件：光标位置大于等于4，且光标前4个字符都是空格
+                    if (start >= 4) {
+                        const textBeforeCursor = this.value.substring(start - 4, start);
+
+                        // 检查这4个字符是否全都是空格
+                        if (textBeforeCursor === '    ') {
+                            // 使用 setRangeText 删除这4个空格（用空字符串替换）
+                            // 'select' 模式意味着删除后光标停留在删除位置
+                            this.setRangeText('', start - 4, start, 'select');
+                        }
+                    }
+                } else {
+                    // 【插入逻辑】
+                    // setRangeText 方法用于替换选中的文本，这里没有选中文本，就是在光标处插入
+                    this.setRangeText('    ', start, end, 'end');
+                }
+
+                // 5. 触发 input 事件，确保有些框架或逻辑能感知到内容变化
+                this.dispatchEvent(new Event('input'));
+            }
+        });
+
+
         function setOutput(value, isError = false) {
             output.textContent = value;
             output.classList.toggle('error', isError);
@@ -286,7 +326,8 @@
                 setOutput(`JSON 格式错误：${result.error.message}`, true);
                 return;
             }
-            setOutput(JSON.stringify(result.value, null, 2));
+            // 格式化（缩进 4 个空格）
+            setOutput(JSON.stringify(result.value, null, 4));
         }
 
         function minifyJson() {

@@ -1,11 +1,331 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>json</title>
+    <title>JSON 格式化校验</title>
+    <style>
+        :root {
+            --blue: #2196f3;
+            --blue-dark: #1976d2;
+            --ink: #424242;
+            --muted: #757575;
+            --line: #e0e0e0;
+            --panel: #fafafa;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            color: var(--ink);
+            background: #fff;
+            font-family: Arial, "Microsoft YaHei", sans-serif;
+            font-size: 14px;
+        }
+
+        button,
+        textarea {
+            font: inherit;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        .page {
+            width: min(1160px, calc(100% - 32px));
+            margin: 0 auto;
+        }
+
+        .top-nav {
+            display: flex;
+            align-items: stretch;
+            min-height: 60px;
+            overflow-x: auto;
+            border-bottom: 1px solid var(--line);
+            white-space: nowrap;
+        }
+
+        .top-nav a {
+            display: inline-flex;
+            align-items: center;
+            min-height: 60px;
+            padding: 0 26px;
+            border-right: 1px solid var(--line);
+            color: #424242;
+            font-size: 18px;
+            text-decoration: none;
+        }
+
+        .top-nav a:first-child {
+            padding-left: 28px;
+        }
+
+        .top-nav a:hover,
+        .top-nav a.active {
+            color: var(--blue);
+        }
+
+        .top-nav a.active {
+            border-bottom: 3px solid var(--blue);
+        }
+
+        .workspace {
+            padding: 24px 0 42px;
+        }
+
+        h1 {
+            margin: 0 0 12px;
+            color: #333;
+            font-size: 26px;
+            font-weight: 600;
+        }
+
+        .editor-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 20px;
+            align-items: stretch;
+        }
+
+        .editor-panel {
+            display: flex;
+            min-width: 0;
+            min-height: 500px;
+            flex-direction: column;
+            border: 1px solid #d5d5d5;
+            background: #fff;
+        }
+
+        .panel-label {
+            display: flex;
+            align-items: center;
+            min-height: 42px;
+            padding: 0 12px;
+            border-bottom: 1px solid var(--line);
+            color: var(--muted);
+            background: var(--panel);
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        textarea,
+        .output {
+            width: 100%;
+            min-height: 455px;
+            flex: 1;
+            margin: 0;
+            padding: 16px;
+            border: 0;
+            outline: 0;
+            resize: vertical;
+            color: #424242;
+            background: #fff;
+            font-family: Menlo, Monaco, Consolas, monospace;
+            font-size: 14px;
+            line-height: 1.7;
+            overflow: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        textarea:focus {
+            box-shadow: inset 0 0 0 2px #bbdefb;
+        }
+
+        .output:empty::before {
+            content: "格式化后的 JSON 将显示在这里";
+            color: #aaa;
+        }
+
+        .output.error {
+            color: #d32f2f;
+        }
+
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            margin-top: 14px;
+            border: 1px solid #bdbdbd;
+            background: #f5f5f5;
+        }
+
+        .toolbar button {
+            min-height: 44px;
+            padding: 0 17px;
+            border: 0;
+            border-right: 1px solid #bdbdbd;
+            color: #424242;
+            background: transparent;
+            font-size: 15px;
+        }
+
+        .toolbar button:hover {
+            color: #fff;
+            background: var(--blue);
+        }
+
+        .toolbar button.primary {
+            color: #fff;
+            background: var(--blue);
+        }
+
+        .toolbar button.primary:hover {
+            background: var(--blue-dark);
+        }
+
+        @media (max-width: 840px) {
+            .page {
+                width: min(100% - 24px, 680px);
+            }
+
+            .top-nav {
+                margin: 0 -12px;
+                padding-left: 12px;
+            }
+
+            .top-nav a {
+                padding: 0 16px;
+                font-size: 16px;
+            }
+
+            .top-nav a:first-child {
+                padding-left: 16px;
+            }
+
+            .workspace {
+                padding-top: 22px;
+            }
+
+            .editor-grid {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+
+            .editor-panel {
+                min-height: 360px;
+            }
+
+            textarea,
+            .output {
+                min-height: 315px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 23px;
+            }
+
+            .toolbar button {
+                flex: 1 0 33.333%;
+                border-bottom: 1px solid #bdbdbd;
+            }
+        }
+    </style>
 </head>
+
 <body>
-    json格式化和压缩工具
+    <div class="page">
+        <nav class="top-nav" aria-label="JSON 工具导航">
+            <a class="active" href="#format">格式化校验</a>
+            <!-- <a href="#view">JSON视图</a>
+            <a href="#minify">JSON压缩转义</a>
+            <a href="#editor">JSON在线编辑器</a> -->
+        </nav>
+
+        <main class="workspace" id="format">
+            <h1>格式化校验</h1>
+            <section class="editor-grid" aria-label="JSON 编辑区域">
+                <div class="editor-panel">
+                    <div class="panel-label">输入 JSON</div>
+                    <textarea id="input-json" spellcheck="false"
+                        placeholder="请在此输入 JSON 内容，例如：&#10;{&#10;  &quot;name&quot;: &quot;BeJSON&quot;&#10;}"></textarea>
+                </div>
+                <div class="editor-panel">
+                    <div class="panel-label">输出 JSON</div>
+                    <pre class="output" id="output-json" aria-live="polite"></pre>
+                </div>
+            </section>
+
+            <div class="toolbar" role="toolbar" aria-label="JSON 操作">
+                <button class="primary" id="format-button" type="button">格式化校验</button>
+                <button id="minify-button" type="button">压缩</button>
+                <button id="escape-button" type="button">转义</button>
+                <button id="unescape-button" type="button">去除转义</button>
+                <button id="unicode-button" type="button">Unicode转中文</button>
+                <button id="copy-button" type="button">复制</button>
+                <button id="clear-button" type="button">清空</button>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const input = document.querySelector('#input-json');
+        const output = document.querySelector('#output-json');
+        function setOutput(value, isError = false) {
+            output.textContent = value;
+            output.classList.toggle('error', isError);
+        }
+
+        function parseInput() {
+            try {
+                return { value: JSON.parse(input.value), error: null };
+            } catch (error) {
+                return { value: null, error };
+            }
+        }
+
+        function formatJson() {
+            const result = parseInput();
+            if (result.error) {
+                setOutput(`JSON 格式错误：${result.error.message}`, true);
+                return;
+            }
+            setOutput(JSON.stringify(result.value, null, 2));
+        }
+
+        function minifyJson() {
+            const result = parseInput();
+            if (result.error) {
+                setOutput(`JSON 格式错误：${result.error.message}`, true);
+                return;
+            }
+            setOutput(JSON.stringify(result.value));
+        }
+
+        function convertUnicode(value) {
+            return value.replace(/\\u([\da-f]{4})/gi, (match, code) => String.fromCharCode(parseInt(code, 16)));
+        }
+
+        function escapeJson() {
+            setOutput(JSON.stringify(input.value));
+        }
+
+        function unescapeJson() {
+            setOutput(convertUnicode(input.value).replace(/\\(["\\/bfnrt])/g, (_, code) => ({ b: '\b', f: '\f', n: '\n', r: '\r', t: '\t' }[code] || code)));
+        }
+
+        document.querySelector('#format-button').addEventListener('click', formatJson);
+        document.querySelector('#minify-button').addEventListener('click', minifyJson);
+        document.querySelector('#escape-button').addEventListener('click', escapeJson);
+        document.querySelector('#unescape-button').addEventListener('click', unescapeJson);
+        document.querySelector('#unicode-button').addEventListener('click', () => {
+            setOutput(convertUnicode(input.value));
+        });
+        document.querySelector('#clear-button').addEventListener('click', () => {
+            input.value = '';
+            setOutput('');
+        });
+        document.querySelector('#copy-button').addEventListener('click', async () => {
+            if (!output.textContent) return;
+            await navigator.clipboard.writeText(output.textContent);
+        });
+    </script>
 </body>
+
 </html>

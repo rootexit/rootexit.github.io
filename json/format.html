@@ -94,7 +94,8 @@
       .editor-panel {
         display: flex;
         min-width: 0;
-        min-height: 500px;
+        min-height: 600px;
+        max-height: 600px;
         flex-direction: column;
         border: 1px solid #d5d5d5;
         background: #fff;
@@ -110,6 +111,29 @@
         background: var(--panel);
         font-size: 14px;
         font-weight: 600;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+
+      .editor-body {
+        display: flex;
+        flex: 1;
+        min-height: 0;
+      }
+
+      .gutter {
+        width: 44px;
+        flex: 0 0 44px;
+        padding: 16px 8px 16px 0;
+        border-right: 1px solid #eee;
+        color: #999;
+        background: var(--panel);
+        font-family: Menlo, Monaco, Consolas, monospace;
+        font-size: 14px;
+        line-height: 1.7;
+        text-align: right;
+        white-space: pre;
+        overflow: hidden;
         -webkit-user-select: none;
         user-select: none;
       }
@@ -130,14 +154,38 @@
         font-size: 14px;
         line-height: 1.7;
         overflow: auto;
-        scrollbar-width: none;
-        white-space: pre-wrap;
-        word-break: break-word;
+        white-space: pre;
+      }
+
+      /* 细滚动条：长 JSON 便于快速拖动定位 */
+      textarea,
+      .output {
+        scrollbar-width: thin;
+        scrollbar-color: #c1c1c1 transparent;
       }
 
       textarea::-webkit-scrollbar,
       .output::-webkit-scrollbar {
-        display: none;
+        width: 10px;
+        height: 10px;
+      }
+
+      textarea::-webkit-scrollbar-track,
+      .output::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      textarea::-webkit-scrollbar-thumb,
+      .output::-webkit-scrollbar-thumb {
+        border: 2px solid transparent;
+        border-radius: 6px;
+        background-color: #c1c1c1;
+        background-clip: padding-box;
+      }
+
+      textarea::-webkit-scrollbar-thumb:hover,
+      .output::-webkit-scrollbar-thumb:hover {
+        background-color: #a0a0a0;
       }
 
       textarea:focus {
@@ -151,6 +199,67 @@
 
       .output.error {
         color: #d32f2f;
+      }
+
+      /* JSON 语法着色 */
+      .j-key {
+        color: #9c2656;
+      }
+
+      .j-str {
+        color: #1a7f37;
+      }
+
+      .j-num {
+        color: #1565c0;
+      }
+
+      .j-bool {
+        color: #6f42c1;
+      }
+
+      .j-null {
+        color: #757575;
+      }
+
+      /* 展开/折叠：用 border 画三角形，展开与折叠均为 10x10，尺寸完全一致 */
+      .j-toggle {
+        display: inline-block;
+        width: 16px;
+        height: 23.8px;
+        vertical-align: top;
+        cursor: pointer;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+
+      .j-toggle::before {
+        display: block;
+        width: 0;
+        height: 0;
+        margin: 7px auto 0;
+        content: '';
+        border-color: #999 transparent transparent;
+        border-style: solid;
+        border-width: 10px 5px 0;
+      }
+
+      .j-toggle.collapsed::before {
+        border-color: transparent transparent transparent #999;
+        border-width: 5px 0 5px 10px;
+      }
+
+      .j-toggle:hover::before {
+        border-top-color: var(--blue);
+      }
+
+      .j-toggle.collapsed:hover::before {
+        border-top-color: transparent;
+        border-left-color: var(--blue);
+      }
+
+      .j-ellipsis {
+        color: #aaa;
       }
 
       .toolbar {
@@ -240,9 +349,9 @@
     <div class="page">
       <nav class="top-nav" aria-label="JSON 工具导航">
         <a class="active" href="#format">格式化校验</a>
-        <!-- <a href="#view">JSON视图</a>
-            <a href="#minify">JSON压缩转义</a>
-            <a href="#editor">JSON在线编辑器</a> -->
+        <!-- <a href="#"></a>
+            <a href="#"></a>
+            <a href="#"></a> -->
       </nav>
 
       <main class="workspace" id="format">
@@ -250,11 +359,17 @@
         <section class="editor-grid" aria-label="JSON 编辑区域">
           <div class="editor-panel">
             <div class="panel-label">输入 JSON</div>
-            <textarea id="input-json" spellcheck="false" placeholder='请在此输入 JSON 内容，例如：&#10;{&#10;  "name": "BeJSON"&#10;}'></textarea>
+            <div class="editor-body">
+              <div class="gutter" id="input-gutter" aria-hidden="true">1</div>
+              <textarea id="input-json" spellcheck="false" placeholder='请在此输入 JSON 内容，例如：&#10;{&#10;  "name": "BeJSON"&#10;}'></textarea>
+            </div>
           </div>
           <div class="editor-panel">
             <div class="panel-label">输出 JSON</div>
-            <pre class="output" id="output-json" aria-live="polite"></pre>
+            <div class="editor-body">
+              <div class="gutter" id="output-gutter" aria-hidden="true">1</div>
+              <pre class="output" id="output-json" aria-live="polite"></pre>
+            </div>
           </div>
         </section>
 
@@ -274,6 +389,9 @@
       const input = document.querySelector('#input-json');
       const output = document.querySelector('#output-json');
 
+      // 缓存最近一次输出的完整纯文本，保证折叠状态下复制内容依然完整
+      let lastOutputText = '';
+
       // 监听键盘事件
       input.addEventListener('keydown', function (e) {
         // 1. 判断是否按下了 Tab 键 (keyCode 9)
@@ -285,25 +403,25 @@
           const start = this.selectionStart;
           const end = this.selectionEnd;
 
-          // 4. 在光标处插入 4 个空格（作为 Tab 的替代）
+          // 4. 在光标处插入 2 个空格（作为 Tab 的替代）
           // --- 判断是否按下了 Shift (Shift + Tab) ---
           if (e.shiftKey) {
             // 【删除逻辑】
-            // 前提条件：光标位置大于等于4，且光标前4个字符都是空格
-            if (start >= 4) {
-              const textBeforeCursor = this.value.substring(start - 4, start);
+            // 前提条件：光标位置大于等于2，且光标前2个字符都是空格
+            if (start >= 2) {
+              const textBeforeCursor = this.value.substring(start - 2, start);
 
-              // 检查这4个字符是否全都是空格
-              if (textBeforeCursor === '    ') {
-                // 使用 setRangeText 删除这4个空格（用空字符串替换）
+              // 检查这2个字符是否全都是空格
+              if (textBeforeCursor === '  ') {
+                // 使用 setRangeText 删除这2个空格（用空字符串替换）
                 // 'select' 模式意味着删除后光标停留在删除位置
-                this.setRangeText('', start - 4, start, 'select');
+                this.setRangeText('', start - 2, start, 'select');
               }
             }
           } else {
             // 【插入逻辑】
             // setRangeText 方法用于替换选中的文本，这里没有选中文本，就是在光标处插入
-            this.setRangeText('    ', start, end, 'end');
+            this.setRangeText('  ', start, end, 'end');
           }
 
           // 5. 触发 input 事件，确保有些框架或逻辑能感知到内容变化
@@ -314,6 +432,115 @@
       function setOutput(value, isError = false) {
         output.textContent = value;
         output.classList.toggle('error', isError);
+        lastOutputText = value;
+        updateOutputGutter();
+      }
+
+      // ---------- 行号 ----------
+      const inputGutter = document.querySelector('#input-gutter');
+      const outputGutter = document.querySelector('#output-gutter');
+
+      function renderGutter(gutter, lines) {
+        let nums = '';
+        for (let i = 1; i <= Math.max(lines, 1); i++) {
+          nums += i + '\n';
+        }
+        gutter.textContent = nums;
+      }
+
+      function updateInputGutter() {
+        renderGutter(inputGutter, input.value.split('\n').length);
+      }
+
+      // 输出区只统计可见行（折叠隐藏的行不计入）
+      function visibleText(node) {
+        if (node.nodeType === Node.TEXT_NODE) return node.textContent;
+        if (node.nodeType !== Node.ELEMENT_NODE) return '';
+        if (getComputedStyle(node).display === 'none') return '';
+        let text = '';
+        node.childNodes.forEach(child => (text += visibleText(child)));
+        return text;
+      }
+
+      function updateOutputGutter() {
+        renderGutter(outputGutter, visibleText(output).split('\n').length);
+        outputGutter.scrollTop = output.scrollTop;
+      }
+
+      input.addEventListener('input', updateInputGutter);
+      input.addEventListener('scroll', () => {
+        inputGutter.scrollTop = input.scrollTop;
+      });
+      output.addEventListener('scroll', () => {
+        outputGutter.scrollTop = output.scrollTop;
+      });
+
+      // ---------- JSON 着色 + 折叠渲染 ----------
+      const INDENT = '  ';
+
+      function renderJsonValue(value, depth) {
+        if (value === null) return span('j-null', 'null');
+        switch (typeof value) {
+          case 'string':
+            return span('j-str', JSON.stringify(value));
+          case 'number':
+            return span('j-num', String(value));
+          case 'boolean':
+            return span('j-bool', String(value));
+        }
+        const isArr = Array.isArray(value);
+        const open = isArr ? '[' : '{';
+        const close = isArr ? ']' : '}';
+        const entries = isArr ? value.map(v => [null, v]) : Object.entries(value);
+        if (!entries.length) return document.createTextNode(open + close);
+
+        const frag = document.createDocumentFragment();
+        const toggle = document.createElement('span');
+        toggle.className = 'j-toggle';
+        frag.appendChild(toggle);
+        frag.appendChild(document.createTextNode(open));
+
+        const body = document.createElement('span');
+        const pad = INDENT.repeat(depth + 1);
+        entries.forEach(([key, val], i) => {
+          body.appendChild(document.createTextNode('\n' + pad));
+          if (key !== null) {
+            body.appendChild(span('j-key', JSON.stringify(key)));
+            body.appendChild(document.createTextNode(': '));
+          }
+          body.appendChild(renderJsonValue(val, depth + 1));
+          if (i < entries.length - 1) body.appendChild(document.createTextNode(','));
+        });
+        body.appendChild(document.createTextNode('\n' + INDENT.repeat(depth) + close));
+        frag.appendChild(body);
+
+        const ellipsis = span('j-ellipsis', ' …' + close);
+        ellipsis.style.display = 'none';
+        frag.appendChild(ellipsis);
+
+        toggle.addEventListener('click', () => {
+          const collapsed = !toggle.classList.contains('collapsed');
+          toggle.classList.toggle('collapsed', collapsed);
+          body.style.display = collapsed ? 'none' : '';
+          ellipsis.style.display = collapsed ? 'inline' : 'none';
+          updateOutputGutter();
+        });
+        return frag;
+      }
+
+      function span(cls, text) {
+        const el = document.createElement('span');
+        el.className = cls;
+        el.textContent = text;
+        return el;
+      }
+
+      function renderJson(value) {
+        output.classList.remove('error');
+        output.replaceChildren(renderJsonValue(value, 0));
+        output.scrollTop = 0;
+        lastOutputText = JSON.stringify(value, null, 2);
+        updateOutputGutter();
       }
 
       function parseInput() {
@@ -330,8 +557,8 @@
           setOutput(`JSON 格式错误：${result.error.message}`, true);
           return;
         }
-        // 格式化（缩进 4 个空格）
-        setOutput(JSON.stringify(result.value, null, 4));
+        // 格式化（缩进 2 个空格），带语法着色与折叠
+        renderJson(result.value);
       }
 
       function minifyJson() {
@@ -365,11 +592,15 @@
       document.querySelector('#clear-button').addEventListener('click', () => {
         input.value = '';
         setOutput('');
+        updateInputGutter();
       });
       document.querySelector('#copy-button').addEventListener('click', async () => {
-        if (!output.textContent) return;
-        await navigator.clipboard.writeText(output.textContent);
+        if (!lastOutputText) return;
+        await navigator.clipboard.writeText(lastOutputText);
       });
+
+      updateInputGutter();
+      updateOutputGutter();
     </script>
   </body>
 </html>

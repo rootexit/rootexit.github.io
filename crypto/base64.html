@@ -1,11 +1,549 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Base64</title>
-</head>
-<body>
-    base64编码和解码工具
-</body>
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Base64加密、解密</title>
+    <style>
+      :root {
+        --blue: #2196f3;
+        --blue-dark: #1976d2;
+        --ink: #424242;
+        --muted: #757575;
+        --line: #e0e0e0;
+        --panel: #fafafa;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        background: #fff;
+        font-family: Arial, 'Microsoft YaHei', sans-serif;
+        font-size: 14px;
+      }
+
+      button,
+      textarea,
+      select {
+        font: inherit;
+      }
+
+      button,
+      select {
+        cursor: pointer;
+      }
+
+      .page {
+        width: min(1160px, calc(100% - 32px));
+        margin: 0 auto;
+      }
+
+      .top-nav {
+        display: flex;
+        align-items: stretch;
+        min-height: 60px;
+        overflow-x: auto;
+        border-bottom: 1px solid var(--line);
+        white-space: nowrap;
+      }
+
+      .top-nav a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 60px;
+        padding: 0 26px;
+        border-right: 1px solid var(--line);
+        color: #424242;
+        font-size: 18px;
+        text-decoration: none;
+      }
+
+      .top-nav a:first-child {
+        padding-left: 28px;
+      }
+
+      .top-nav a:hover,
+      .top-nav a.active {
+        color: var(--blue);
+      }
+
+      .top-nav a.active {
+        border-bottom: 3px solid var(--blue);
+      }
+
+      .workspace {
+        padding: 24px 0 42px;
+      }
+
+      h1 {
+        margin: 0 0 12px;
+        color: #333;
+        font-size: 26px;
+        font-weight: 600;
+      }
+
+      .editor-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        align-items: stretch;
+      }
+
+      .editor-panel {
+        display: flex;
+        min-width: 0;
+        min-height: 500px;
+        max-height: 500px;
+        flex-direction: column;
+        border: 1px solid #d5d5d5;
+        background: #fff;
+      }
+
+      .editor-body {
+        position: relative;
+        display: flex;
+        flex: 1;
+        min-height: 0;
+      }
+
+      .image-preview {
+        position: absolute;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        background: #fff;
+        overflow: auto;
+        scrollbar-width: none;
+      }
+
+      .image-preview::-webkit-scrollbar {
+        display: none;
+      }
+
+      .image-preview img {
+        max-width: 100%;
+        max-height: 100%;
+      }
+
+      .gutter {
+        width: 44px;
+        flex: 0 0 44px;
+        padding: 16px 8px 16px 0;
+        border-right: 1px solid #eee;
+        color: #999;
+        background: var(--panel);
+        font-family: Menlo, Monaco, Consolas, monospace;
+        font-size: 14px;
+        line-height: 1.7;
+        text-align: right;
+        white-space: pre;
+        overflow: hidden;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+
+      textarea {
+        width: 100%;
+        min-height: 455px;
+        flex: 1;
+        margin: 0;
+        padding: 16px;
+        border: 0;
+        outline: 0;
+        resize: none;
+        color: #424242;
+        background: #fff;
+        font-family: Menlo, Monaco, Consolas, monospace;
+        font-size: 14px;
+        line-height: 1.7;
+        overflow: auto;
+        scrollbar-width: none;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+
+      textarea::-webkit-scrollbar {
+        display: none;
+      }
+
+      textarea:focus {
+        box-shadow: inset 0 0 0 2px #bbdefb;
+      }
+
+      textarea.error {
+        color: #d32f2f;
+      }
+
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: stretch;
+        margin-top: 14px;
+        border: 1px solid #bdbdbd;
+        background: #f5f5f5;
+      }
+
+      .toolbar button {
+        min-height: 44px;
+        padding: 0 17px;
+        border: 0;
+        border-right: 1px solid #bdbdbd;
+        color: #424242;
+        background: transparent;
+        font-size: 15px;
+      }
+
+      .toolbar button:hover {
+        color: #fff;
+        background: var(--blue);
+      }
+
+      .toolbar button.primary {
+        color: #fff;
+        background: var(--blue);
+      }
+
+      .toolbar button.primary:hover {
+        background: var(--blue-dark);
+      }
+
+      .toolbar .encoding {
+        min-height: 44px;
+        padding: 0 12px;
+        border: 0;
+        border-right: 1px solid #bdbdbd;
+        color: #424242;
+        background: transparent;
+        font-size: 15px;
+      }
+
+      .toolbar .encoding:hover {
+        background: var(--blue);
+        color: #fff;
+      }
+
+      @media (max-width: 840px) {
+        .page {
+          width: min(100% - 24px, 680px);
+        }
+
+        .top-nav {
+          margin: 0 -12px;
+          padding-left: 12px;
+        }
+
+        .top-nav a {
+          padding: 0 16px;
+          font-size: 16px;
+        }
+
+        .top-nav a:first-child {
+          padding-left: 16px;
+        }
+
+        .workspace {
+          padding-top: 22px;
+        }
+
+        .editor-grid {
+          grid-template-columns: 1fr;
+          gap: 16px;
+        }
+
+        .editor-panel {
+          min-height: 360px;
+        }
+
+        textarea {
+          min-height: 315px;
+        }
+      }
+
+      @media (max-width: 480px) {
+        h1 {
+          font-size: 23px;
+        }
+
+        .toolbar button {
+          flex: 1 0 33.333%;
+          border-bottom: 1px solid #bdbdbd;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="page">
+      <nav class="top-nav" aria-label="Base64 工具导航">
+        <a class="active" href="#base64">Base64加密、解密</a>
+      </nav>
+
+      <main class="workspace" id="base64">
+        <h1>Base64加密、解密</h1>
+        <section class="editor-grid" aria-label="Base64 编辑区域">
+          <div class="editor-panel" id="input-panel">
+            <div class="editor-body">
+              <div class="gutter" id="input-gutter" aria-hidden="true">1</div>
+              <textarea id="input-text" spellcheck="false" placeholder="请在此输入需要加密或解密的文本，也可直接粘贴/拖拽图片"></textarea>
+              <div class="image-preview" id="input-preview"><img alt="输入图片预览" /></div>
+            </div>
+          </div>
+          <div class="editor-panel" id="output-panel">
+            <div class="editor-body">
+              <div class="gutter" id="output-gutter" aria-hidden="true">1</div>
+              <textarea id="output-text" spellcheck="false" readonly aria-live="polite" placeholder="加密或解密后的结果将显示在这里"></textarea>
+              <div class="image-preview" id="output-preview"><img alt="解密图片预览" /></div>
+            </div>
+          </div>
+        </section>
+
+        <div class="toolbar" role="toolbar" aria-label="Base64 操作">
+          <button class="primary" id="encode-button" type="button">base64加密</button>
+          <button class="primary" id="decode-button" type="button">base64解密</button>
+          <button id="swap-button" type="button">交换内容</button>
+          <button id="clear-button" type="button">清空</button>
+          <select class="encoding" id="encoding-select" aria-label="编码选择">
+            <option value="utf-8" selected>UTF-8</option>
+            <option value="gbk">GBK</option>
+          </select>
+          <button id="download-button" type="button">下载加密/解密代码</button>
+          <button id="copy-button" type="button">复制加密/解密代码</button>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      const input = document.querySelector('#input-text');
+      const output = document.querySelector('#output-text');
+      const inputGutter = document.querySelector('#input-gutter');
+      const outputGutter = document.querySelector('#output-gutter');
+      const inputPanel = document.querySelector('#input-panel');
+      const inputPreview = document.querySelector('#input-preview');
+      const outputPreview = document.querySelector('#output-preview');
+      const encodingSelect = document.querySelector('#encoding-select');
+
+      function updateGutter(textarea, gutter) {
+        const lines = textarea.value.split('\n').length || 1;
+        let nums = '';
+        for (let i = 1; i <= Math.max(lines, 1); i++) {
+          nums += i + '\n';
+        }
+        gutter.textContent = nums;
+        gutter.scrollTop = textarea.scrollTop;
+      }
+
+      function bindEditor(textarea, gutter) {
+        textarea.addEventListener('input', () => updateGutter(textarea, gutter));
+        textarea.addEventListener('scroll', () => {
+          gutter.scrollTop = textarea.scrollTop;
+        });
+        updateGutter(textarea, gutter);
+      }
+
+      bindEditor(input, inputGutter);
+      bindEditor(output, outputGutter);
+
+      function showPreview(previewEl, src) {
+        previewEl.querySelector('img').src = src;
+        previewEl.style.display = 'flex';
+      }
+
+      function hidePreview(previewEl) {
+        previewEl.querySelector('img').removeAttribute('src');
+        previewEl.style.display = 'none';
+      }
+
+      function setOutput(value, isError = false) {
+        output.value = value;
+        output.classList.toggle('error', isError);
+        updateGutter(output, outputGutter);
+      }
+
+      // ---------- 图片格式识别 ----------
+      const IMAGE_SIGNATURES = [
+        { ext: 'png', mime: 'image/png', test: b => b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47 },
+        { ext: 'jpg', mime: 'image/jpeg', test: b => b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff },
+        { ext: 'gif', mime: 'image/gif', test: b => b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46 },
+        { ext: 'bmp', mime: 'image/bmp', test: b => b[0] === 0x42 && b[1] === 0x4d },
+        {
+          ext: 'webp',
+          mime: 'image/webp',
+          test: b =>
+            b.length > 11 &&
+            b[0] === 0x52 &&
+            b[1] === 0x49 &&
+            b[2] === 0x46 &&
+            b[3] === 0x46 &&
+            b[8] === 0x57 &&
+            b[9] === 0x45 &&
+            b[10] === 0x42 &&
+            b[11] === 0x50
+        },
+        { ext: 'ico', mime: 'image/x-icon', test: b => b[0] === 0x00 && b[1] === 0x00 && b[2] === 0x01 && b[3] === 0x00 }
+      ];
+
+      function detectImage(bytes) {
+        return IMAGE_SIGNATURES.find(sig => sig.test(bytes)) || null;
+      }
+
+      function decodeToBytes(b64) {
+        const binary = atob(b64.replace(/\s/g, ''));
+        return Uint8Array.from(binary, c => c.charCodeAt(0));
+      }
+
+      // ---------- 文本 <-> Base64 ----------
+      function encodeBase64(text) {
+        const bytes = new TextEncoder().encode(text);
+        let binary = '';
+        bytes.forEach(b => (binary += String.fromCharCode(b)));
+        return btoa(binary);
+      }
+
+      function base64Encode() {
+        hidePreview(outputPreview);
+        if (!input.value) {
+          setOutput('');
+          return;
+        }
+        try {
+          // 输入框当前是图片的 base64（带预览）时，输出完整 dataURL
+          if (inputPreview.style.display === 'flex') {
+            const img = inputPreview.querySelector('img');
+            setOutput(img.src);
+          } else {
+            setOutput(encodeBase64(input.value));
+          }
+        } catch (error) {
+          setOutput(`加密失败：${error.message}`, true);
+        }
+      }
+
+      function base64Decode() {
+        hidePreview(outputPreview);
+        if (!input.value) {
+          setOutput('');
+          return;
+        }
+        const raw = input.value.trim();
+        try {
+          // 输入本身是 dataURL，直接预览
+          if (/^data:image\/[\w.+-]+;base64,/i.test(raw)) {
+            setOutput(raw);
+            showPreview(outputPreview, raw);
+            return;
+          }
+          const bytes = decodeToBytes(raw);
+          const sig = detectImage(bytes);
+          if (sig) {
+            // 解码结果是图片：显示 base64 dataURL 并预览
+            const dataUrl = `data:${sig.mime};base64,${raw.replace(/\s/g, '')}`;
+            setOutput(dataUrl);
+            showPreview(outputPreview, dataUrl);
+            return;
+          }
+          try {
+            setOutput(new TextDecoder(encodingSelect.value).decode(bytes));
+          } catch {
+            setOutput(new TextDecoder('utf-8').decode(bytes));
+          }
+        } catch {
+          setOutput('Base64 格式错误，请检查输入内容', true);
+        }
+      }
+
+      // ---------- 图片输入：粘贴 / 拖拽 ----------
+      function handleImageFile(file) {
+        if (!file || !file.type.startsWith('image/')) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          const dataUrl = reader.result;
+          input.value = dataUrl.split(',')[1];
+          updateGutter(input, inputGutter);
+          showPreview(inputPreview, dataUrl);
+          hidePreview(outputPreview);
+          setOutput('');
+        };
+        reader.readAsDataURL(file);
+      }
+
+      input.addEventListener('paste', e => {
+        const items = e.clipboardData && e.clipboardData.items;
+        if (!items) return;
+        for (const item of items) {
+          if (item.kind === 'file') {
+            const file = item.getAsFile();
+            if (file) {
+              e.preventDefault();
+              handleImageFile(file);
+              return;
+            }
+          }
+        }
+      });
+
+      inputPanel.addEventListener('dragover', e => e.preventDefault());
+      inputPanel.addEventListener('drop', e => {
+        e.preventDefault();
+        const file = e.dataTransfer.files && e.dataTransfer.files[0];
+        if (file) handleImageFile(file);
+      });
+
+      // 手动编辑输入框文本时取消图片预览
+      input.addEventListener('input', () => {
+        if (inputPreview.style.display === 'flex') hidePreview(inputPreview);
+      });
+
+      // ---------- 工具栏 ----------
+      document.querySelector('#encode-button').addEventListener('click', base64Encode);
+      document.querySelector('#decode-button').addEventListener('click', base64Decode);
+      document.querySelector('#swap-button').addEventListener('click', () => {
+        const tmp = input.value;
+        input.value = output.value;
+        output.value = tmp;
+        output.classList.remove('error');
+        updateGutter(input, inputGutter);
+        updateGutter(output, outputGutter);
+        // 输出区若是图片预览，交换后移到输入区
+        if (outputPreview.style.display === 'flex') {
+          const src = outputPreview.querySelector('img').src;
+          hidePreview(outputPreview);
+          showPreview(inputPreview, src);
+        } else {
+          hidePreview(inputPreview);
+        }
+      });
+      document.querySelector('#clear-button').addEventListener('click', () => {
+        input.value = '';
+        setOutput('');
+        hidePreview(inputPreview);
+        hidePreview(outputPreview);
+        updateGutter(input, inputGutter);
+      });
+      document.querySelector('#download-button').addEventListener('click', () => {
+        if (!output.value) return;
+        const a = document.createElement('a');
+        if (/^data:image\/[\w.+-]+;base64,/i.test(output.value)) {
+          const mime = output.value.slice(5, output.value.indexOf(';'));
+          const ext = (IMAGE_SIGNATURES.find(s => s.mime === mime) || { ext: 'img' }).ext;
+          a.href = output.value;
+          a.download = `base64-image.${ext}`;
+        } else {
+          a.href = URL.createObjectURL(new Blob([output.value], { type: 'text/plain;charset=utf-8' }));
+          a.download = 'base64.txt';
+        }
+        a.click();
+        if (!a.href.startsWith('data:')) URL.revokeObjectURL(a.href);
+      });
+      document.querySelector('#copy-button').addEventListener('click', async () => {
+        if (!output.value) return;
+        await navigator.clipboard.writeText(output.value);
+      });
+    </script>
+  </body>
 </html>

@@ -1,0 +1,456 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SHA加密</title>
+    <style>
+      :root {
+        --blue: #2196f3;
+        --blue-dark: #1976d2;
+        --ink: #424242;
+        --muted: #757575;
+        --line: #e0e0e0;
+        --panel: #fafafa;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        background: #fff;
+        font-family: Arial, 'Microsoft YaHei', sans-serif;
+        font-size: 14px;
+      }
+
+      button,
+      textarea {
+        font: inherit;
+      }
+
+      button {
+        cursor: pointer;
+      }
+
+      .page {
+        width: min(1160px, calc(100% - 32px));
+        margin: 0 auto;
+      }
+
+      .top-nav {
+        display: flex;
+        align-items: stretch;
+        min-height: 60px;
+        overflow-x: auto;
+        border-bottom: 1px solid var(--line);
+        white-space: nowrap;
+      }
+
+      .top-nav a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 60px;
+        padding: 0 26px;
+        border-right: 1px solid var(--line);
+        color: #424242;
+        font-size: 18px;
+        text-decoration: none;
+      }
+
+      .top-nav a:first-child {
+        padding-left: 28px;
+      }
+
+      .top-nav a:hover,
+      .top-nav a.active {
+        color: var(--blue);
+      }
+
+      .top-nav a.active {
+        border-bottom: 3px solid var(--blue);
+      }
+
+      .workspace {
+        padding: 24px 0 42px;
+      }
+
+      h1 {
+        margin: 0 0 12px;
+        color: #333;
+        font-size: 26px;
+        font-weight: 600;
+      }
+
+      .editor-panel {
+        display: flex;
+        min-height: 400px;
+        max-height: 400px;
+        flex-direction: column;
+        border: 1px solid #d5d5d5;
+        background: #fff;
+      }
+
+      .editor-body {
+        display: flex;
+        flex: 1;
+        min-height: 0;
+      }
+
+      .gutter {
+        width: 44px;
+        flex: 0 0 44px;
+        padding: 16px 8px 16px 0;
+        border-right: 1px solid #eee;
+        color: #999;
+        background: var(--panel);
+        font-family: Menlo, Monaco, Consolas, monospace;
+        font-size: 14px;
+        line-height: 1.7;
+        text-align: right;
+        white-space: pre;
+        overflow: hidden;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+
+      textarea {
+        width: 100%;
+        flex: 1;
+        margin: 0;
+        padding: 16px;
+        border: 0;
+        outline: 0;
+        resize: none;
+        color: #424242;
+        background: #fff;
+        font-family: Menlo, Monaco, Consolas, monospace;
+        font-size: 14px;
+        line-height: 1.7;
+        overflow: auto;
+        scrollbar-width: none;
+        white-space: pre-wrap;
+        word-break: break-all;
+      }
+
+      textarea::-webkit-scrollbar {
+        display: none;
+      }
+
+      textarea:focus {
+        box-shadow: inset 0 0 0 2px #bbdefb;
+      }
+
+      .toolbar {
+        display: flex;
+        flex-wrap: nowrap;
+        align-items: stretch;
+        margin-top: 14px;
+        overflow-x: auto;
+        border: 1px solid #bdbdbd;
+        background: #f5f5f5;
+      }
+
+      .toolbar + .toolbar {
+        margin-top: 10px;
+        margin-bottom: 14px;
+      }
+
+      .toolbar button {
+        flex: 0 0 auto;
+        min-height: 44px;
+        padding: 0 12px;
+        border: 0;
+        border-right: 1px solid #bdbdbd;
+        color: #424242;
+        background: transparent;
+        font-size: 15px;
+        white-space: nowrap;
+      }
+
+      .toolbar button:hover {
+        color: #fff;
+        background: var(--blue);
+      }
+
+      .toolbar button.primary {
+        color: #fff;
+        background: var(--blue);
+      }
+
+      .toolbar button.primary:hover {
+        background: var(--blue-dark);
+      }
+
+      /* Hamc / PBKDF2 参数行 */
+      .param-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        margin-top: 14px;
+        margin-bottom: 14px;
+      }
+
+      .param-bar[hidden] {
+        display: none;
+      }
+
+      .input-group {
+        display: inline-flex;
+        align-items: stretch;
+        border: 1px solid var(--line);
+        background: #fff;
+      }
+
+      .input-group .addon {
+        display: flex;
+        align-items: center;
+        padding: 0 12px;
+        border-right: 1px solid var(--line);
+        color: #555;
+        background: var(--panel);
+        white-space: nowrap;
+      }
+
+      .input-group input,
+      .input-group select {
+        min-width: 150px;
+        padding: 8px 12px;
+        border: 0;
+        outline: 0;
+        color: #424242;
+        background: #fff;
+        font: inherit;
+      }
+
+      .input-group input::placeholder {
+        color: #aaa;
+      }
+
+      @media (max-width: 840px) {
+        .page {
+          width: min(100% - 24px, 680px);
+        }
+
+        .top-nav {
+          margin: 0 -12px;
+          padding-left: 12px;
+        }
+
+        .top-nav a {
+          padding: 0 16px;
+          font-size: 16px;
+        }
+
+        .top-nav a:first-child {
+          padding-left: 16px;
+        }
+
+        .workspace {
+          padding-top: 22px;
+        }
+
+        .editor-panel {
+          min-height: 300px;
+          max-height: 300px;
+        }
+      }
+
+      @media (max-width: 480px) {
+        h1 {
+          font-size: 23px;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="page">
+      <nav class="top-nav" aria-label="SHA 工具导航">
+        <a class="active" href="#sha">SHA加密</a>
+      </nav>
+
+      <main class="workspace" id="sha">
+        <h1>SHA加密</h1>
+
+        <section class="editor-panel">
+          <div class="editor-body">
+            <div class="gutter" id="input-gutter" aria-hidden="true">1</div>
+            <textarea id="input-text" spellcheck="false" placeholder="请在此输入需要加密的文本"></textarea>
+          </div>
+        </section>
+
+        <div class="toolbar" role="toolbar" aria-label="哈希算法">
+          <button class="primary" type="button" data-algo="sha1">SHA1</button>
+          <button class="primary" type="button" data-algo="sha3">SHA3</button>
+          <button class="primary" type="button" data-algo="sha224">SHA224</button>
+          <button class="primary" type="button" data-algo="sha256">SHA256</button>
+          <button class="primary" type="button" data-algo="sha384">SHA384</button>
+          <button class="primary" type="button" data-algo="sha512">SHA512</button>
+          <button class="primary" type="button" data-algo="md5">MD5</button>
+        </div>
+
+        <div class="toolbar" role="toolbar" aria-label="HMAC 与其它操作">
+          <button class="primary" type="button" data-hmac="sha1">HamcSHA1</button>
+          <button class="primary" type="button" data-hmac="sha3">HamcSHA3</button>
+          <button class="primary" type="button" data-hmac="sha224">HamcSHA224</button>
+          <button class="primary" type="button" data-hmac="sha256">HamcSHA256</button>
+          <button class="primary" type="button" data-hmac="sha384">HamcSHA384</button>
+          <button class="primary" type="button" data-hmac="sha512">HamcSHA512</button>
+          <button class="primary" type="button" data-hmac="md5">HamcMD5</button>
+          <button class="primary" type="button" id="pbkdf2-button">PBKDF2</button>
+          <button id="clear-button" type="button">清空</button>
+          <button id="download-button" type="button">下载加密代码</button>
+          <button id="copy-button" type="button">复制加密代码</button>
+        </div>
+
+        <div class="param-bar" id="hmac-box" hidden>
+          <div class="input-group">
+            <span class="addon">密钥</span>
+            <input type="text" id="hmac-key" placeholder="请输入密钥" />
+          </div>
+        </div>
+
+        <div class="param-bar" id="pbkdf2-box" hidden>
+          <div class="input-group">
+            <span class="addon">KEY长度：</span>
+            <select id="pbkdf2-keylen">
+              <option value="128" selected>128位</option>
+              <option value="256">256位</option>
+              <option value="512">512位</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <span class="addon">盐</span>
+            <input type="text" id="pbkdf2-salt" placeholder="请输入盐" />
+          </div>
+          <div class="input-group">
+            <span class="addon">迭代次数</span>
+            <input type="number" id="pbkdf2-iter" value="1" min="1" />
+          </div>
+        </div>
+
+        <section class="editor-panel">
+          <div class="editor-body">
+            <div class="gutter" id="output-gutter" aria-hidden="true">1</div>
+            <textarea id="output-text" spellcheck="false" readonly aria-live="polite" placeholder="加密后的结果将显示在这里"></textarea>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+    <script>
+      // ================= 页面逻辑（哈希算法统一使用 CryptoJS） =================
+      const input = document.querySelector('#input-text');
+      const output = document.querySelector('#output-text');
+      const inputGutter = document.querySelector('#input-gutter');
+      const outputGutter = document.querySelector('#output-gutter');
+
+      function renderGutter(gutter, lines) {
+        let nums = '';
+        for (let i = 1; i <= Math.max(lines, 1); i++) nums += i + '\n';
+        gutter.textContent = nums;
+      }
+
+      function updateInputGutter() {
+        renderGutter(inputGutter, input.value.split('\n').length);
+      }
+
+      function setOutput(value) {
+        output.value = value;
+        output.scrollTop = 0;
+        renderGutter(outputGutter, value.split('\n').length);
+      }
+
+      input.addEventListener('input', updateInputGutter);
+      input.addEventListener('scroll', () => (inputGutter.scrollTop = input.scrollTop));
+      output.addEventListener('scroll', () => (outputGutter.scrollTop = output.scrollTop));
+
+      // 普通哈希：按钮 data-algo 直接映射到 CryptoJS 同名方法
+      const HASH_METHODS = {
+        md5: 'MD5',
+        sha1: 'SHA1',
+        sha3: 'SHA3',
+        sha224: 'SHA224',
+        sha256: 'SHA256',
+        sha384: 'SHA384',
+        sha512: 'SHA512'
+      };
+
+      // 参数区：Hamc 显示密钥行，PBKDF2 显示参数行，普通算法两者都隐藏
+      const hmacBox = document.querySelector('#hmac-box');
+      const pbkdf2Box = document.querySelector('#pbkdf2-box');
+      const hmacKey = document.querySelector('#hmac-key');
+      const pbkdf2KeyLen = document.querySelector('#pbkdf2-keylen');
+      const pbkdf2Salt = document.querySelector('#pbkdf2-salt');
+      const pbkdf2Iter = document.querySelector('#pbkdf2-iter');
+
+      function showMode(mode) {
+        hmacBox.hidden = mode !== 'hmac';
+        pbkdf2Box.hidden = mode !== 'pbkdf2';
+      }
+
+      document.querySelectorAll('[data-algo]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          showMode('none');
+          if (!input.value) return;
+          const method = HASH_METHODS[btn.dataset.algo];
+          // CryptoJS 的 SHA3 默认输出 512 位，这里统一取 256 位
+          const options = btn.dataset.algo === 'sha3' ? { outputLength: 256 } : undefined;
+          setOutput(CryptoJS[method](input.value, options).toString(CryptoJS.enc.Hex));
+        });
+      });
+
+      // HMAC：消息为输入文本，密钥取「密钥」输入框
+      document.querySelectorAll('[data-hmac]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          showMode('hmac');
+          if (!input.value) return;
+          const method = HASH_METHODS[btn.dataset.hmac];
+          const fn = CryptoJS['Hmac' + method];
+          setOutput(fn(input.value, hmacKey.value).toString(CryptoJS.enc.Hex));
+        });
+      });
+
+      // PBKDF2：KEY长度 / 盐 / 迭代次数，hasher 使用默认 SHA1
+      document.querySelector('#pbkdf2-button').addEventListener('click', () => {
+        showMode('pbkdf2');
+        if (!input.value) return;
+        const key = CryptoJS.PBKDF2(input.value, pbkdf2Salt.value, {
+          keySize: Number(pbkdf2KeyLen.value) / 32,
+          iterations: Math.max(1, Number(pbkdf2Iter.value) || 1),
+          hasher: CryptoJS.algo.SHA1
+        });
+        setOutput(key.toString(CryptoJS.enc.Hex));
+      });
+
+      document.querySelector('#clear-button').addEventListener('click', () => {
+        input.value = '';
+        hmacKey.value = '';
+        pbkdf2Salt.value = '';
+        pbkdf2Iter.value = '1';
+        updateInputGutter();
+        setOutput('');
+      });
+
+      document.querySelector('#download-button').addEventListener('click', () => {
+        if (!output.value) return;
+        const blob = new Blob([output.value], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'sha.txt';
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+
+      document.querySelector('#copy-button').addEventListener('click', async () => {
+        if (!output.value) return;
+        await navigator.clipboard.writeText(output.value);
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,681 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>日期转换</title>
+    <style>
+      :root {
+        --blue: #2196f3;
+        --blue-dark: #1976d2;
+        --ink: #424242;
+        --muted: #757575;
+        --line: #e0e0e0;
+        --panel: #f5f5f5;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        background: #fff;
+        font-family: Arial, 'Microsoft YaHei', sans-serif;
+        font-size: 14px;
+      }
+
+      button,
+      input {
+        font: inherit;
+      }
+
+      button {
+        cursor: pointer;
+      }
+
+      .page {
+        width: min(1160px, calc(100% - 32px));
+        margin: 0 auto;
+      }
+
+      .top-nav {
+        display: flex;
+        align-items: stretch;
+        min-height: 60px;
+        overflow-x: auto;
+        border-bottom: 1px solid var(--line);
+        white-space: nowrap;
+      }
+
+      .top-nav a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 60px;
+        padding: 0 26px;
+        border-right: 1px solid var(--line);
+        color: #424242;
+        font-size: 18px;
+        text-decoration: none;
+      }
+
+      .top-nav a:first-child {
+        padding-left: 28px;
+      }
+
+      .top-nav a:hover,
+      .top-nav a.active {
+        color: var(--blue);
+      }
+
+      .top-nav a.active {
+        border-bottom: 3px solid var(--blue);
+      }
+
+      /* 视图切换：仅显示当前激活的视图 */
+      .view {
+        display: none;
+      }
+
+      .view.active {
+        display: block;
+      }
+
+      .workspace {
+        padding: 24px 0 42px;
+      }
+
+      h1 {
+        margin: 0 0 16px;
+        color: #333;
+        font-size: 26px;
+        font-weight: 600;
+      }
+
+      /* 位数选择 */
+      .digits-group {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+        margin-bottom: 14px;
+      }
+
+      .digits-group label {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+
+      .digits-group input[type='radio'] {
+        accent-color: var(--blue);
+        width: 16px;
+        height: 16px;
+        margin: 0;
+      }
+
+      /* 字段行：仿表格的 标签格 + 输入格 + 按钮 */
+      .field-row {
+        display: flex;
+        align-items: stretch;
+        margin-bottom: 18px;
+        border: 1px solid #bdbdbd;
+      }
+
+      .field-label {
+        display: flex;
+        flex: 0 0 auto;
+        align-items: center;
+        padding: 0 14px;
+        border-right: 1px solid var(--line);
+        color: var(--ink);
+        background: var(--panel);
+        white-space: nowrap;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+
+      .field-input {
+        min-width: 0;
+        flex: 1;
+        padding: 12px 14px;
+        border: 0;
+        outline: 0;
+        color: var(--ink);
+        background: #fff;
+        font-family: Menlo, Monaco, Consolas, monospace;
+        font-size: 15px;
+      }
+
+      .field-input:focus {
+        box-shadow: inset 0 0 0 2px #bbdefb;
+      }
+
+      .field-input[readonly] {
+        color: var(--muted);
+      }
+
+      .field-row > .btn {
+        flex: 0 0 auto;
+        border-left: 1px solid var(--line);
+      }
+
+      .btn {
+        min-height: 46px;
+        padding: 0 26px;
+        border: 0;
+        color: #fff;
+        background: var(--blue);
+        font-size: 15px;
+        white-space: nowrap;
+      }
+
+      .btn:hover {
+        background: var(--blue-dark);
+      }
+
+      .section-title {
+        margin: 0 0 10px;
+        color: #333;
+        font-size: 16px;
+      }
+
+      /* 日期 → 时间戳行 */
+      .date-row .num {
+        min-width: 0;
+        flex: 1;
+        padding: 12px 10px;
+        border: 0;
+        border-right: 1px solid var(--line);
+        outline: 0;
+        color: var(--ink);
+        background: #fff;
+        font-family: Menlo, Monaco, Consolas, monospace;
+        font-size: 15px;
+      }
+
+      .date-row .num:focus {
+        box-shadow: inset 0 0 0 2px #bbdefb;
+      }
+
+      .date-row .unit {
+        display: flex;
+        flex: 0 0 auto;
+        align-items: center;
+        padding: 0 14px;
+        color: var(--ink);
+        background: var(--panel);
+        -webkit-user-select: none;
+        user-select: none;
+      }
+
+      .date-row .btn {
+        flex: 0 0 auto;
+      }
+
+      /* 时间戳输出框需要完整展示 10~13 位数字，给予更大弹性权重 */
+      .date-row .field-input {
+        flex: 3;
+      }
+
+      /* Date 对象字符串较长（约 47 字符），给予更大弹性权重避免被截断 */
+      .field-input.wide {
+        flex: 2.4;
+      }
+
+      .error-tip {
+        margin: -10px 0 18px;
+        color: #d32f2f;
+        font-size: 13px;
+      }
+
+      .error-tip:empty {
+        display: none;
+      }
+
+      @media (max-width: 840px) {
+        .page {
+          width: min(100% - 24px, 680px);
+        }
+
+        .top-nav {
+          margin: 0 -12px;
+          padding-left: 12px;
+        }
+
+        .top-nav a {
+          padding: 0 16px;
+          font-size: 16px;
+        }
+
+        .top-nav a:first-child {
+          padding-left: 16px;
+        }
+
+        .workspace {
+          padding-top: 22px;
+        }
+
+        .field-input,
+        .date-row .num {
+          font-size: 14px;
+        }
+
+        .btn {
+          padding: 0 16px;
+        }
+      }
+
+      @media (max-width: 600px) {
+        h1 {
+          font-size: 22px;
+        }
+
+        .field-row {
+          flex-wrap: wrap;
+        }
+
+        .field-label,
+        .date-row .unit {
+          flex: 0 0 auto;
+        }
+
+        .field-input {
+          flex: 1 1 120px;
+        }
+
+        .field-row > .btn {
+          flex: 1 1 100%;
+          border-top: 1px solid var(--line);
+          border-left: 0;
+        }
+
+        .date-row .num {
+          flex: 1 1 60px;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="page">
+      <nav class="top-nav" aria-label="时间转换 工具导航">
+        <a class="active" href="#view-ts" data-view="view-ts">时间戳 → 日期</a>
+        <a href="#view-obj" data-view="view-obj">Date 对象 → 日期</a>
+        <a href="#view-iso" data-view="view-iso">ISO 8601 字符串 → 日期</a>
+      </nav>
+
+      <main class="workspace">
+        <!-- 视图一：Unix 时间戳互转 -->
+        <section class="view active" id="view-ts">
+          <h1>Unix时间互转（日期转毫秒）</h1>
+
+          <div class="digits-group" role="radiogroup" aria-label="时间戳位数">
+            <label><input type="radio" name="digits" value="10" checked />10位时间戳(秒级)</label>
+            <label><input type="radio" name="digits" value="13" />13位时间戳(毫秒级)</label>
+          </div>
+
+          <div class="field-row">
+            <span class="field-label">当前时间戳:</span>
+            <input class="field-input" id="now-ts" readonly aria-label="当前时间戳" />
+            <button class="btn" type="button" data-copy="now-ts">复制</button>
+          </div>
+
+          <p class="section-title">Unix时间戳(Unix timestamp) → 北京时间</p>
+          <div class="field-row">
+            <span class="field-label">时间戳</span>
+            <input class="field-input" id="ts-input" inputmode="numeric" spellcheck="false" aria-label="输入时间戳" />
+            <button class="btn" type="button" id="to-date">转换日期→</button>
+            <span class="field-label">北京时间</span>
+            <input class="field-input" id="date-output" readonly aria-label="北京时间" />
+            <button class="btn" type="button" data-copy="date-output">复制</button>
+          </div>
+
+          <p class="section-title">北京时间 → Unix时间戳(Unix timestamp)</p>
+          <div class="field-row date-row">
+            <input class="num" id="d-year" inputmode="numeric" aria-label="年" />
+            <span class="unit">年</span>
+            <input class="num" id="d-month" inputmode="numeric" aria-label="月" />
+            <span class="unit">月</span>
+            <input class="num" id="d-day" inputmode="numeric" aria-label="日" />
+            <span class="unit">日</span>
+            <input class="num" id="d-hour" inputmode="numeric" aria-label="时" />
+            <span class="unit">时</span>
+            <input class="num" id="d-min" inputmode="numeric" aria-label="分" />
+            <span class="unit">分</span>
+            <input class="num" id="d-sec" inputmode="numeric" aria-label="秒" />
+            <span class="unit">秒</span>
+            <button class="btn" type="button" id="to-ts">转换时间戳→</button>
+            <span class="field-label">时间戳</span>
+            <input class="field-input" id="ts-output" readonly aria-label="时间戳" />
+            <button class="btn" type="button" data-copy="ts-output">复制</button>
+          </div>
+          <p class="error-tip" id="error-tip" aria-live="polite"></p>
+        </section>
+
+        <!-- 视图二：Date 对象互转 -->
+        <section class="view" id="view-obj">
+          <h1>Date 对象互转</h1>
+
+          <p class="section-title">Date 对象 → 北京时间</p>
+          <div class="field-row">
+            <span class="field-label">Date 对象</span>
+            <input class="field-input wide" id="obj-input" spellcheck="false" aria-label="输入 Date 对象字符串" />
+            <button class="btn" type="button" id="obj-to-bj">转换北京时间→</button>
+            <span class="field-label">北京时间</span>
+            <input class="field-input" id="obj-output" readonly aria-label="北京时间" />
+            <button class="btn" type="button" data-copy="obj-output">复制</button>
+          </div>
+
+          <p class="section-title">北京时间 → Date 对象</p>
+          <div class="field-row">
+            <span class="field-label">北京时间</span>
+            <input class="field-input" id="bj-input-1" spellcheck="false" aria-label="输入北京时间，格式 YYYY-MM-DD HH:mm:ss" />
+            <button class="btn" type="button" id="bj-to-obj">转换Date→</button>
+            <span class="field-label">Date 对象</span>
+            <input class="field-input wide" id="bj-obj-output" readonly aria-label="Date 对象" />
+            <button class="btn" type="button" data-copy="bj-obj-output">复制</button>
+          </div>
+          <p class="error-tip" id="error-tip-obj" aria-live="polite"></p>
+        </section>
+
+        <!-- 视图三：ISO 8601 互转 -->
+        <section class="view" id="view-iso">
+          <h1>ISO 8601 字符串互转</h1>
+
+          <p class="section-title">ISO 8601 字符串 → 北京时间</p>
+          <div class="field-row">
+            <span class="field-label">ISO 8601</span>
+            <input class="field-input" id="iso-input" spellcheck="false" aria-label="输入 ISO 8601 字符串" />
+            <button class="btn" type="button" id="iso-to-bj">转换北京时间→</button>
+            <span class="field-label">北京时间</span>
+            <input class="field-input" id="iso-output" readonly aria-label="北京时间" />
+            <button class="btn" type="button" data-copy="iso-output">复制</button>
+          </div>
+
+          <p class="section-title">北京时间 → ISO 8601 字符串</p>
+          <div class="field-row">
+            <span class="field-label">北京时间</span>
+            <input class="field-input" id="bj-input-2" spellcheck="false" aria-label="输入北京时间，格式 YYYY-MM-DD HH:mm:ss" />
+            <button class="btn" type="button" id="bj-to-iso">转换ISO→</button>
+            <span class="field-label">ISO 8601</span>
+            <input class="field-input" id="bj-iso-output" readonly aria-label="ISO 8601 字符串" />
+            <button class="btn" type="button" data-copy="bj-iso-output">复制</button>
+          </div>
+          <p class="error-tip" id="error-tip-iso" aria-live="polite"></p>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      const nowTs = document.querySelector('#now-ts');
+      const tsInput = document.querySelector('#ts-input');
+      const dateOutput = document.querySelector('#date-output');
+      const tsOutput = document.querySelector('#ts-output');
+      const errorTip = document.querySelector('#error-tip');
+      const digitRadios = document.querySelectorAll('input[name="digits"]');
+
+      const pad = n => String(n).padStart(2, '0');
+
+      // 当前选中的位数（10=秒，13=毫秒）
+      function digits() {
+        return Number(document.querySelector('input[name="digits"]:checked').value);
+      }
+
+      // 毫秒时间戳 → 北京时间对象（固定 UTC+8，不依赖本机时区）
+      function toBeijing(ms) {
+        const d = new Date(ms + 8 * 3600 * 1000);
+        return {
+          year: d.getUTCFullYear(),
+          month: d.getUTCMonth() + 1,
+          day: d.getUTCDate(),
+          hour: d.getUTCHours(),
+          min: d.getUTCMinutes(),
+          sec: d.getUTCSeconds()
+        };
+      }
+
+      function formatBeijing(ms) {
+        const b = toBeijing(ms);
+        return `${b.year}-${pad(b.month)}-${pad(b.day)} ${pad(b.hour)}:${pad(b.min)}:${pad(b.sec)}`;
+      }
+
+      // ---------- 当前时间戳（实时刷新） ----------
+      function currentTimestamp() {
+        return digits() === 13 ? Date.now() : Math.floor(Date.now() / 1000);
+      }
+
+      function refreshNow() {
+        nowTs.value = String(currentTimestamp());
+      }
+
+      // ---------- 时间戳 → 北京时间 ----------
+      function convertToDate() {
+        errorTip.textContent = '';
+        const raw = tsInput.value.trim();
+        if (!/^\d+$/.test(raw)) {
+          dateOutput.value = '';
+          errorTip.textContent = '请输入有效的 Unix 时间戳（纯数字）';
+          return;
+        }
+        const n = Number(raw);
+        // 13 位按毫秒解析，10 位按秒解析
+        const ms = raw.length === 13 ? n : n * 1000;
+        const b = toBeijing(ms);
+        dateOutput.value = formatBeijing(ms);
+        // 同步填充日期输入框
+        document.querySelector('#d-year').value = b.year;
+        document.querySelector('#d-month').value = pad(b.month);
+        document.querySelector('#d-day').value = pad(b.day);
+        document.querySelector('#d-hour').value = pad(b.hour);
+        document.querySelector('#d-min').value = pad(b.min);
+        document.querySelector('#d-sec').value = pad(b.sec);
+      }
+
+      // ---------- 北京时间 → 时间戳 ----------
+      function convertToTimestamp() {
+        errorTip.textContent = '';
+        const ids = ['#d-year', '#d-month', '#d-day', '#d-hour', '#d-min', '#d-sec'];
+        const nums = ids.map(s => document.querySelector(s).value.trim());
+        if (nums.some(v => v === '' || !/^\d+$/.test(v))) {
+          tsOutput.value = '';
+          errorTip.textContent = '年/月/日/时/分/秒均需填写数字';
+          return;
+        }
+        const [y, mo, d, h, mi, s] = nums.map(Number);
+        const date = new Date(Date.UTC(y, mo - 1, d, h, mi, s));
+        if (date.getUTCFullYear() !== y || date.getUTCMonth() !== mo - 1 || date.getUTCDate() !== d || h > 23 || mi > 59 || s > 59) {
+          tsOutput.value = '';
+          errorTip.textContent = '日期或时间不合法，请检查输入';
+          return;
+        }
+        // 北京时间(UTC+8) → UTC 毫秒
+        const ms = date.getTime() - 8 * 3600 * 1000;
+        if (Number.isNaN(ms)) {
+          tsOutput.value = '';
+          errorTip.textContent = '日期或时间不合法，请检查输入';
+          return;
+        }
+        tsOutput.value = String(digits() === 13 ? ms : Math.floor(ms / 1000));
+      }
+
+      // ---------- Date 对象 / ISO 8601 互转 ----------
+      const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+      const objInput = document.querySelector('#obj-input');
+      const objOutput = document.querySelector('#obj-output');
+      const bjInput1 = document.querySelector('#bj-input-1');
+      const bjObjOutput = document.querySelector('#bj-obj-output');
+      const errorTipObj = document.querySelector('#error-tip-obj');
+
+      const isoInput = document.querySelector('#iso-input');
+      const isoOutput = document.querySelector('#iso-output');
+      const bjInput2 = document.querySelector('#bj-input-2');
+      const bjIsoOutput = document.querySelector('#bj-iso-output');
+      const errorTipIso = document.querySelector('#error-tip-iso');
+
+      // 北京时间字符串 "YYYY-MM-DD HH:mm:ss" → UTC 毫秒
+      function bjStringToMs(str) {
+        const m = /^(\d{4})-(\d{1,2})-(\d{1,2})[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?$/.exec(str);
+        if (!m) return NaN;
+        const [, y, mo, d, h, mi, s] = m.map((v, i) => (i === 0 ? v : Number(v)));
+        const date = new Date(Date.UTC(y, mo - 1, d, h, mi, s || 0));
+        if (date.getUTCFullYear() !== y || date.getUTCMonth() !== mo - 1 || date.getUTCDate() !== d || h > 23 || mi > 59 || (s || 0) > 59) return NaN;
+        return date.getTime() - 8 * 3600 * 1000;
+      }
+
+      // UTC 毫秒 → 仿 Date.toString() 的北京时间字符串，如 "Wed Sep 17 2026 09:27:04 GMT+0800 (中国标准时间)"
+      function msToDateString(ms) {
+        const b = toBeijing(ms);
+        const day = new Date(ms + 8 * 3600 * 1000).getUTCDay();
+        return `${WEEKDAYS[day]} ${MONTHS[b.month - 1]} ${pad(b.day)} ${b.year} ${pad(b.hour)}:${pad(b.min)}:${pad(b.sec)} GMT+0800 (中国标准时间)`;
+      }
+
+      // Date 对象字符串 → 北京时间
+      function convertObjToBj() {
+        errorTipObj.textContent = '';
+        const raw = objInput.value.trim();
+        const ms = raw ? new Date(raw).getTime() : NaN;
+        if (Number.isNaN(ms)) {
+          objOutput.value = '';
+          errorTipObj.textContent = '无法解析该 Date 对象字符串，请输入合法格式（如 Wed Sep 17 2026 09:27:04 GMT+0800）';
+          return;
+        }
+        objOutput.value = formatBeijing(ms);
+      }
+
+      // 北京时间 → Date 对象字符串
+      function convertBjToObj() {
+        errorTipObj.textContent = '';
+        const ms = bjStringToMs(bjInput1.value.trim());
+        if (Number.isNaN(ms)) {
+          bjObjOutput.value = '';
+          errorTipObj.textContent = '北京时间格式不正确，请输入 YYYY-MM-DD HH:mm:ss';
+          return;
+        }
+        bjObjOutput.value = msToDateString(ms);
+      }
+
+      // ISO 8601 字符串 → 北京时间
+      function convertIsoToBj() {
+        errorTipIso.textContent = '';
+        const raw = isoInput.value.trim();
+        const ms = raw ? new Date(raw).getTime() : NaN;
+        if (Number.isNaN(ms)) {
+          isoOutput.value = '';
+          errorTipIso.textContent = '无法解析该 ISO 8601 字符串，请输入合法格式（如 2026-09-17T09:27:04+08:00）';
+          return;
+        }
+        isoOutput.value = formatBeijing(ms);
+      }
+
+      // 北京时间 → ISO 8601 字符串（带 +08:00 偏移）
+      function convertBjToIso() {
+        errorTipIso.textContent = '';
+        const ms = bjStringToMs(bjInput2.value.trim());
+        if (Number.isNaN(ms)) {
+          bjIsoOutput.value = '';
+          errorTipIso.textContent = '北京时间格式不正确，请输入 YYYY-MM-DD HH:mm:ss';
+          return;
+        }
+        const b = toBeijing(ms);
+        bjIsoOutput.value = `${b.year}-${pad(b.month)}-${pad(b.day)}T${pad(b.hour)}:${pad(b.min)}:${pad(b.sec)}+08:00`;
+      }
+
+      // ---------- 初始化：用当前时间填充 ----------
+      function initFromNow() {
+        const b = toBeijing(Date.now());
+        tsInput.value = String(Math.floor(Date.now() / 1000));
+        document.querySelector('#d-year').value = b.year;
+        document.querySelector('#d-month').value = pad(b.month);
+        document.querySelector('#d-day').value = pad(b.day);
+        document.querySelector('#d-hour').value = pad(b.hour);
+        document.querySelector('#d-min').value = pad(b.min);
+        document.querySelector('#d-sec').value = pad(b.sec);
+        convertToDate();
+        convertToTimestamp();
+
+        // 用当前时间填充新增的转换区
+        const bjStr = formatBeijing(Date.now());
+        objInput.value = msToDateString(Date.now());
+        objOutput.value = bjStr;
+        bjInput1.value = bjStr;
+        bjObjOutput.value = msToDateString(Date.now());
+        isoInput.value = new Date().toISOString();
+        isoOutput.value = bjStr;
+        bjInput2.value = bjStr;
+        convertBjToIso();
+      }
+
+      // ---------- 事件绑定 ----------
+      document.querySelector('#to-date').addEventListener('click', convertToDate);
+      document.querySelector('#to-ts').addEventListener('click', convertToTimestamp);
+      tsInput.addEventListener('keydown', e => {
+        if (e.key === 'Enter') convertToDate();
+      });
+
+      document.querySelector('#obj-to-bj').addEventListener('click', convertObjToBj);
+      document.querySelector('#bj-to-obj').addEventListener('click', convertBjToObj);
+      document.querySelector('#iso-to-bj').addEventListener('click', convertIsoToBj);
+      document.querySelector('#bj-to-iso').addEventListener('click', convertBjToIso);
+      [objInput, bjInput1, isoInput, bjInput2].forEach(el =>
+        el.addEventListener('keydown', e => {
+          if (e.key !== 'Enter') return;
+          if (el === objInput) convertObjToBj();
+          else if (el === bjInput1) convertBjToObj();
+          else if (el === isoInput) convertIsoToBj();
+          else convertBjToIso();
+        })
+      );
+
+      digitRadios.forEach(radio =>
+        radio.addEventListener('change', () => {
+          refreshNow();
+          convertToTimestamp();
+        })
+      );
+
+      document.querySelectorAll('[data-copy]').forEach(btn =>
+        btn.addEventListener('click', async () => {
+          const value = document.querySelector('#' + btn.dataset.copy).value;
+          if (!value) return;
+          await navigator.clipboard.writeText(value);
+        })
+      );
+
+      // ---------- 导航视图切换 ----------
+      const navLinks = document.querySelectorAll('.top-nav a[data-view]');
+      const views = document.querySelectorAll('.view');
+
+      function showView(id) {
+        const target = document.querySelector('#' + id);
+        if (!target) return false;
+        views.forEach(v => v.classList.toggle('active', v === target));
+        navLinks.forEach(a => a.classList.toggle('active', a.dataset.view === id));
+        return true;
+      }
+
+      navLinks.forEach(a =>
+        a.addEventListener('click', e => {
+          e.preventDefault();
+          const id = a.dataset.view;
+          if (showView(id)) history.replaceState(null, '', '#' + id);
+        })
+      );
+
+      window.addEventListener('hashchange', () => {
+        showView(location.hash.slice(1));
+      });
+
+      showView(location.hash.slice(1));
+
+      refreshNow();
+      setInterval(refreshNow, 1000);
+      initFromNow();
+    </script>
+  </body>
+</html>

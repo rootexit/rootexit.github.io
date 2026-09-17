@@ -531,6 +531,7 @@
       const views = document.querySelectorAll('.view');
 
       function showView(id) {
+        if (!id) return false;
         const target = document.querySelector('#' + id);
         if (!target) return false;
         views.forEach(v => v.classList.toggle('active', v === target));

@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>cookie在线格式化工具</title>
+    <meta name="description" content="可以对cookie进行在线格式化，cookie的字符串格式和列表格式转换为json key-value格式" />
+    <style>
+      :root {
+        --blue: #2196f3;
+        --blue-dark: #1976d2;
+        --ink: #424242;
+        --muted: #757575;
+        --line: #e0e0e0;
+        --panel: #f5f5f5;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        background: #fff;
+        font-family: Arial, 'Microsoft YaHei', sans-serif;
+        font-size: 14px;
+      }
+
+      button,
+      textarea {
+        font: inherit;
+      }
+
+      button {
+        cursor: pointer;
+      }
+
+      .page {
+        width: min(1160px, calc(100% - 32px));
+        margin: 0 auto;
+      }
+
+      .top-nav {
+        display: flex;
+        align-items: stretch;
+        min-height: 60px;
+        overflow-x: auto;
+        border-bottom: 1px solid var(--line);
+        white-space: nowrap;
+      }
+
+      .top-nav a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 60px;
+        padding: 0 26px;
+        border-right: 1px solid var(--line);
+        color: #424242;
+        font-size: 18px;
+        text-decoration: none;
+      }
+
+      .top-nav a:first-child {
+        padding-left: 28px;
+      }
+
+      .top-nav a:hover,
+      .top-nav a.active {
+        color: var(--blue);
+      }
+
+      .top-nav a.active {
+        border-bottom: 3px solid var(--blue);
+      }
+
+      .workspace {
+        padding: 24px 0 42px;
+      }
+
+      h1 {
+        margin: 0 0 16px;
+        color: #333;
+        font-size: 26px;
+        font-weight: 600;
+      }
+
+      /* 左右两栏：输入区 + 结果区 */
+      .tool-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0;
+      }
+
+      .pane {
+        min-width: 0;
+      }
+
+      .pane--left {
+        padding-right: 20px;
+        border-right: 1px solid #ddd;
+      }
+
+      .pane--right {
+        padding-left: 20px;
+      }
+
+      textarea {
+        display: block;
+        width: 100%;
+        height: 420px;
+        padding: 12px 14px;
+        border: 1px solid #bdbdbd;
+        outline: 0;
+        color: var(--ink);
+        background: #fff;
+        font-family: Menlo, Monaco, Consolas, 'Courier New', monospace;
+        font-size: 14px;
+        line-height: 1.6;
+        resize: vertical;
+      }
+
+      textarea::placeholder {
+        color: #9e9e9e;
+        font-family: Arial, 'Microsoft YaHei', sans-serif;
+      }
+
+      textarea:focus {
+        box-shadow: inset 0 0 0 2px #bbdefb;
+      }
+
+      /* 结果框：只读灰底，与截图一致 */
+      #cookie-output {
+        color: var(--ink);
+        background: #e6e6e6;
+      }
+
+      #cookie-output::placeholder {
+        color: #757575;
+      }
+
+      /* 操作按钮行：保持单行，窄屏可横向滚动 */
+      .btn-row {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 10px;
+        margin-top: 15px;
+        overflow-x: auto;
+      }
+
+      .btn {
+        min-height: 46px;
+        padding: 0 14px;
+        border: 1px solid transparent;
+        color: #fff;
+        background: var(--blue);
+        font-size: 15px;
+        white-space: nowrap;
+        transition:
+          background 0.15s ease,
+          color 0.15s ease,
+          border-color 0.15s ease;
+      }
+
+      .btn:hover {
+        background: var(--blue-dark);
+      }
+
+      .btn:active {
+        background: #1565c0;
+      }
+
+      /* 次级按钮：浅灰底 + 描边 */
+      .btn--default {
+        color: var(--ink);
+        background: var(--panel);
+        border-color: #bdbdbd;
+      }
+
+      .btn--default:hover {
+        color: #fff;
+        background: var(--blue);
+        border-color: var(--blue);
+      }
+
+      .btn--default:active {
+        background: var(--blue-dark);
+        border-color: var(--blue-dark);
+      }
+
+      /* 轻提示（对应原站 toastR 反馈） */
+      .toast {
+        position: fixed;
+        top: 24px;
+        left: 50%;
+        z-index: 999;
+        max-width: calc(100% - 32px);
+        padding: 10px 22px;
+        border-radius: 4px;
+        color: #fff;
+        background: rgba(66, 66, 66, 0.92);
+        font-size: 14px;
+        opacity: 0;
+        transform: translate(-50%, -8px);
+        pointer-events: none;
+        transition:
+          opacity 0.2s ease,
+          transform 0.2s ease;
+      }
+
+      .toast.show {
+        opacity: 1;
+        transform: translate(-50%, 0);
+      }
+
+      .toast.err {
+        background: rgba(211, 47, 47, 0.95);
+      }
+
+      .toast.success {
+        background: rgba(46, 125, 50, 0.95);
+      }
+
+      /* 平板端：收窄留白 */
+      @media (max-width: 1199px) {
+        .page {
+          width: min(100% - 32px, 920px);
+        }
+
+        .pane--left {
+          padding-right: 14px;
+        }
+
+        .pane--right {
+          padding-left: 14px;
+        }
+
+        textarea {
+          height: 360px;
+        }
+      }
+
+      /* 移动端：上下堆叠 */
+      @media (max-width: 767px) {
+        .page {
+          width: min(100% - 24px, 680px);
+        }
+
+        .top-nav {
+          margin: 0 -12px;
+          padding-left: 12px;
+        }
+
+        .top-nav a {
+          padding: 0 16px;
+          font-size: 16px;
+        }
+
+        .top-nav a:first-child {
+          padding-left: 16px;
+        }
+
+        .workspace {
+          padding-top: 22px;
+        }
+
+        h1 {
+          font-size: 22px;
+        }
+
+        .tool-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .pane--left {
+          padding-right: 0;
+          border-right: 0;
+        }
+
+        .pane--right {
+          padding-left: 0;
+          margin-top: 20px;
+        }
+
+        textarea {
+          height: 260px;
+          font-size: 13px;
+        }
+
+        .btn {
+          min-height: 44px;
+          padding: 0 12px;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="page">
+      <nav class="top-nav" aria-label="Cookie 工具导航">
+        <a class="active" href="#format">cookie在线格式化</a>
+      </nav>
+
+      <main class="workspace" id="format">
+        <h1>cookie在线格式化工具</h1>
+
+        <div class="tool-grid">
+          <!-- 左侧：输入区 + 操作按钮 -->
+          <section class="pane pane--left" aria-label="Cookie 输入区">
+            <textarea id="cookie-input" placeholder="请输入 Cookie 数据" spellcheck="false" aria-label="Cookie 数据输入框"></textarea>
+
+            <div class="btn-row">
+              <button class="btn" type="button" id="btn-convert">转为JSON格式</button>
+              <button class="btn btn--default" type="button" id="btn-demo1">来个Demo1</button>
+              <button class="btn btn--default" type="button" id="btn-demo2">来个Demo2</button>
+              <button class="btn btn--default" type="button" id="btn-clear">清空</button>
+              <button class="btn btn--default" type="button" id="btn-copy">复制结果</button>
+            </div>
+          </section>
+
+          <!-- 右侧：结果展示区 -->
+          <section class="pane pane--right" aria-label="格式化结果区">
+            <textarea id="cookie-output" placeholder="结果将在此显示" readonly aria-label="格式化结果输出框"></textarea>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script>
+      const cookieInput = document.querySelector('#cookie-input');
+      const cookieOutput = document.querySelector('#cookie-output');
+      const toastEl = document.querySelector('#toast');
+
+      // ---------- 轻提示 ----------
+      let toastTimer = null;
+
+      function toast(msg, type) {
+        toastEl.textContent = msg;
+        toastEl.className = 'toast show' + (type ? ' ' + type : '');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => {
+          toastEl.className = 'toast';
+        }, 2000);
+      }
+
+      // ---------- 将 Cookie 转换为 JSON 格式 ----------
+      function convertToJSON() {
+        const input = cookieInput.value.trim();
+        if (!input) {
+          toast('请输入有效数据！', 'err');
+          return;
+        }
+
+        try {
+          // 尝试解析为 JSON，成功则可能是列表格式或对象格式
+          const jsonData = JSON.parse(input);
+
+          if (Array.isArray(jsonData)) {
+            // 数组（列表）格式 → 简单键值对对象
+            const cookieObj = {};
+            jsonData.forEach(cookie => {
+              if (cookie.name) {
+                cookieObj[cookie.name] = cookie.value || '';
+              }
+            });
+            cookieOutput.value = JSON.stringify(cookieObj, null, 4);
+          } else {
+            // 已经是对象格式，直接格式化输出
+            cookieOutput.value = JSON.stringify(jsonData, null, 4);
+          }
+          toast('已转换为JSON格式', 'success');
+        } catch (e) {
+          // 不是 JSON，按字符串格式处理：以分号分隔键值对
+          const pairs = input.split(';').map(pair => pair.trim());
+          const cookieObj = {};
+
+          pairs.forEach(pair => {
+            if (pair) {
+              const [name, value] = pair.split('=');
+              if (name) {
+                cookieObj[name.trim()] = value ? value.trim() : '';
+              }
+            }
+          });
+
+          cookieOutput.value = JSON.stringify(cookieObj, null, 4);
+          toast('已转换为JSON格式', 'success');
+        }
+      }
+
+      // ---------- 加载字符串格式 Demo ----------
+      function loadStringDemo() {
+        cookieInput.value = 'Hm_lvt_123=999; HMACCOUNT=ABCDEFG;';
+        toast('已加载字符串格式示例', 'success');
+      }
+
+      // ---------- 加载列表格式 Demo ----------
+      function loadArrayDemo() {
+        cookieInput.value =
+          '[\n' +
+          '  {\n' +
+          '      "domain": "localhost",\n' +
+          '      "name": "Hm_lvt_123",\n' +
+          '      "path": "/",\n' +
+          '      "value": "999"\n' +
+          '  },\n' +
+          '  {\n' +
+          '      "domain": "localhost",\n' +
+          '      "name": "HMACCOUNT",\n' +
+          '      "path": "/",\n' +
+          '      "value": "ABCDEFG"\n' +
+          '  }\n' +
+          ']';
+        toast('已加载列表格式示例', 'success');
+      }
+
+      // ---------- 清空输入与结果 ----------
+      function clearCookieInput() {
+        cookieInput.value = '';
+        cookieOutput.value = '';
+        toast('已清空输入框', 'success');
+      }
+
+      // ---------- 复制结果到剪贴板 ----------
+      async function copyResult() {
+        if (!cookieOutput.value) {
+          toast('没有可复制的内容！', 'err');
+          return;
+        }
+
+        try {
+          await navigator.clipboard.writeText(cookieOutput.value);
+          toast('已复制到剪贴板！', 'success');
+        } catch (err) {
+          // 兼容不支持 Clipboard API 的环境
+          cookieOutput.select();
+          cookieOutput.setSelectionRange(0, 99999);
+          document.execCommand('copy');
+          toast('已复制到剪贴板！', 'success');
+        }
+      }
+
+      // ---------- 事件绑定 ----------
+      document.querySelector('#btn-convert').addEventListener('click', convertToJSON);
+      document.querySelector('#btn-demo1').addEventListener('click', loadStringDemo);
+      document.querySelector('#btn-demo2').addEventListener('click', loadArrayDemo);
+      document.querySelector('#btn-clear').addEventListener('click', clearCookieInput);
+      document.querySelector('#btn-copy').addEventListener('click', copyResult);
+    </script>
+  </body>
+</html>

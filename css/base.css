@@ -1,0 +1,44 @@
+/* ============================================================
+ * base.css — 设计变量与基础重置（全站工具页共享）
+ * 页面特有差异（如 --panel、h1 边距）可在页内 <style> 中覆盖，
+ * 因外链样式先于页内样式加载，覆盖天然生效。
+ * ============================================================ */
+
+:root {
+  --blue: #2196f3;
+  --blue-dark: #1976d2;
+  --ink: #424242;
+  --muted: #757575;
+  --line: #e0e0e0;
+  --panel: #fafafa;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  color: var(--ink);
+  background: #fff;
+  font-family: Arial, 'Microsoft YaHei', sans-serif;
+  font-size: 14px;
+}
+
+button,
+textarea,
+input,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+h1 {
+  margin: 0 0 12px;
+  color: #333;
+  font-size: 26px;
+  font-weight: 600;
+}

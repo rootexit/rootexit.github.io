@@ -1,0 +1,42 @@
+/* ============================================================
+ * form.css — 表单类共享组件（convert/time.html 与 convert/qrcode.html）
+ * 包含：字段行标签格 .field-label、主按钮 .btn 基础样式、错误提示 .error-tip。
+ * 页面差异（.field-row 边框高度、.btn 弹性布局、disabled 态、margin 值等）
+ * 在各自页内 <style> 中补充或覆盖。
+ * ============================================================ */
+
+.field-label {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  padding: 0 14px;
+  border-right: 1px solid var(--line);
+  color: var(--ink);
+  background: var(--panel);
+  white-space: nowrap;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.btn {
+  min-height: 46px;
+  padding: 0 26px;
+  border: 0;
+  color: #fff;
+  background: var(--blue);
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+.btn:hover {
+  background: var(--blue-dark);
+}
+
+.error-tip {
+  color: #d32f2f;
+  font-size: 13px;
+}
+
+.error-tip:empty {
+  display: none;
+}

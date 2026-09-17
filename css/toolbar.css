@@ -1,0 +1,44 @@
+/* ============================================================
+ * toolbar.css — 底部操作按钮条（json / md5 / base64 / color2hex / sha 共享）
+ * sha.html 的换行与按钮间距差异、color2hex.html 的 480px 列宽差异
+ * 在各自页内 <style> 中覆盖。
+ * ============================================================ */
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  border: 1px solid #bdbdbd;
+  background: #f5f5f5;
+}
+
+.toolbar button {
+  min-height: 44px;
+  padding: 0 17px;
+  border: 0;
+  border-right: 1px solid #bdbdbd;
+  color: #424242;
+  background: transparent;
+  font-size: 15px;
+}
+
+.toolbar button:hover {
+  color: #fff;
+  background: var(--blue);
+}
+
+.toolbar button.primary {
+  color: #fff;
+  background: var(--blue);
+}
+
+.toolbar button.primary:hover {
+  background: var(--blue-dark);
+}
+
+@media (max-width: 480px) {
+  .toolbar button {
+    flex: 1 0 33.333%;
+    border-bottom: 1px solid #bdbdbd;
+  }
+}

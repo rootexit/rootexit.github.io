@@ -1,0 +1,48 @@
+/* ============================================================
+ * layout.css — 页面骨架布局（全站工具页共享）
+ * 包含：内容容器 .page、顶部导航 .top-nav、工作区 .workspace
+ * 注意：840px 断点的响应式规则在 responsive.css 中，
+ * cookie/format.html 因断点不同（1199/767px）不引入该文件。
+ * ============================================================ */
+
+.page {
+  width: min(1160px, calc(100% - 32px));
+  margin: 0 auto;
+}
+
+.top-nav {
+  display: flex;
+  align-items: stretch;
+  min-height: 60px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.top-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 60px;
+  padding: 0 26px;
+  border-right: 1px solid var(--line);
+  color: #424242;
+  font-size: 18px;
+  text-decoration: none;
+}
+
+.top-nav a:first-child {
+  padding-left: 28px;
+}
+
+.top-nav a:hover,
+.top-nav a.active {
+  color: var(--blue);
+}
+
+.top-nav a.active {
+  border-bottom: 3px solid var(--blue);
+}
+
+.workspace {
+  padding: 24px 0 42px;
+}

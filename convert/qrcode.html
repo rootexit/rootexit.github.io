@@ -4,86 +4,18 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>二维码生成和解码</title>
+    <link rel="stylesheet" href="../css/base.css" />
+    <link rel="stylesheet" href="../css/layout.css" />
+    <link rel="stylesheet" href="../css/form.css" />
+    <link rel="stylesheet" href="../css/responsive.css" />
     <style>
+      /* ===== 本页差异样式（通用部分已提取至 ../css/*.css） ===== */
       :root {
-        --blue: #2196f3;
-        --blue-dark: #1976d2;
-        --ink: #424242;
-        --muted: #757575;
-        --line: #e0e0e0;
         --panel: #f5f5f5;
-      }
-
-      * {
-        box-sizing: border-box;
-      }
-
-      body {
-        margin: 0;
-        color: var(--ink);
-        background: #fff;
-        font-family: Arial, 'Microsoft YaHei', sans-serif;
-        font-size: 14px;
-      }
-
-      button,
-      input,
-      select,
-      textarea {
-        font: inherit;
-      }
-
-      button {
-        cursor: pointer;
-      }
-
-      .page {
-        width: min(1160px, calc(100% - 32px));
-        margin: 0 auto;
-      }
-
-      .top-nav {
-        display: flex;
-        align-items: stretch;
-        min-height: 60px;
-        overflow-x: auto;
-        border-bottom: 1px solid var(--line);
-        white-space: nowrap;
-      }
-
-      .top-nav a {
-        display: inline-flex;
-        align-items: center;
-        min-height: 60px;
-        padding: 0 26px;
-        border-right: 1px solid var(--line);
-        color: #424242;
-        font-size: 18px;
-        text-decoration: none;
-      }
-
-      .top-nav a:first-child {
-        padding-left: 28px;
-      }
-
-      .top-nav a:hover,
-      .top-nav a.active {
-        color: var(--blue);
-      }
-
-      .top-nav a.active {
-        border-bottom: 3px solid var(--blue);
-      }
-
-      .workspace {
-        padding: 24px 0 42px;
       }
 
       h1 {
         margin: 0 0 16px;
-        color: #333;
-        font-size: 26px;
-        font-weight: 600;
       }
 
       /* 编码 / 解码 选项卡 */
@@ -156,25 +88,12 @@
         margin-bottom: 18px;
       }
 
-      /* 字段行：仿表格的 标签格 + 控件格 */
+      /* 字段行：仿表格的 标签格 + 控件格（.field-label 见 form.css） */
       .field-row {
         display: flex;
         align-items: stretch;
         min-height: 46px;
         border: 1px solid #bdbdbd;
-      }
-
-      .field-label {
-        display: flex;
-        flex: 0 0 auto;
-        align-items: center;
-        padding: 0 14px;
-        border-right: 1px solid var(--line);
-        color: var(--ink);
-        background: var(--panel);
-        white-space: nowrap;
-        -webkit-user-select: none;
-        user-select: none;
       }
 
       .field-control {
@@ -256,21 +175,11 @@
         border-color: var(--blue);
       }
 
+      /* 主按钮基础样式见 form.css，本页需要 flex 居中 */
       .btn {
         display: flex;
         align-items: center;
         justify-content: center;
-        min-height: 46px;
-        padding: 0 26px;
-        border: 0;
-        color: #fff;
-        background: var(--blue);
-        font-size: 15px;
-        white-space: nowrap;
-      }
-
-      .btn:hover {
-        background: var(--blue-dark);
       }
 
       .btn:disabled {
@@ -334,15 +243,9 @@
         max-height: 100%;
       }
 
-      /* 解码结果 */
+      /* 解码结果（基础样式见 form.css） */
       .error-tip {
         margin: -8px 0 18px;
-        color: #d32f2f;
-        font-size: 13px;
-      }
-
-      .error-tip:empty {
-        display: none;
       }
 
       /* 二维码输出区 */
@@ -391,28 +294,6 @@
       }
 
       @media (max-width: 840px) {
-        .page {
-          width: min(100% - 24px, 680px);
-        }
-
-        .top-nav {
-          margin: 0 -12px;
-          padding-left: 12px;
-        }
-
-        .top-nav a {
-          padding: 0 16px;
-          font-size: 16px;
-        }
-
-        .top-nav a:first-child {
-          padding-left: 16px;
-        }
-
-        .workspace {
-          padding-top: 22px;
-        }
-
         .upload-row .field-row,
         .action-row .field-row {
           width: 320px;

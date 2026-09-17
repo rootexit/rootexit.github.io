@@ -1,0 +1,29 @@
+/* ============================================================
+ * responsive.css — 840px 断点的共享响应式规则
+ * 适用于：json / crypto / convert 下各工具页
+ * cookie/format.html 使用 1199px / 767px 断点，不引入本文件。
+ * ============================================================ */
+
+@media (max-width: 840px) {
+  .page {
+    width: min(100% - 24px, 680px);
+  }
+
+  .top-nav {
+    margin: 0 -12px;
+    padding-left: 12px;
+  }
+
+  .top-nav a {
+    padding: 0 16px;
+    font-size: 16px;
+  }
+
+  .top-nav a:first-child {
+    padding-left: 16px;
+  }
+
+  .workspace {
+    padding-top: 22px;
+  }
+}

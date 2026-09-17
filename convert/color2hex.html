@@ -1,0 +1,817 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>16进制RGB CMYK HSV颜色格式在线互转工具</title>
+    <style>
+      :root {
+        --blue: #2196f3;
+        --blue-dark: #1976d2;
+        --ink: #424242;
+        --muted: #757575;
+        --line: #e0e0e0;
+        --panel: #fafafa;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        background: #fff;
+        font-family: Arial, 'Microsoft YaHei', sans-serif;
+        font-size: 14px;
+      }
+
+      button,
+      input {
+        font: inherit;
+      }
+
+      button {
+        cursor: pointer;
+      }
+
+      .page {
+        width: min(1160px, calc(100% - 32px));
+        margin: 0 auto;
+      }
+
+      .top-nav {
+        display: flex;
+        align-items: stretch;
+        min-height: 60px;
+        overflow-x: auto;
+        border-bottom: 1px solid var(--line);
+        white-space: nowrap;
+      }
+
+      .top-nav a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 60px;
+        padding: 0 26px;
+        border-right: 1px solid var(--line);
+        color: #424242;
+        font-size: 18px;
+        text-decoration: none;
+      }
+
+      .top-nav a:first-child {
+        padding-left: 28px;
+      }
+
+      .top-nav a:hover,
+      .top-nav a.active {
+        color: var(--blue);
+      }
+
+      .top-nav a.active {
+        border-bottom: 3px solid var(--blue);
+      }
+
+      .workspace {
+        padding: 24px 0 42px;
+      }
+
+      h1 {
+        margin: 0 0 12px;
+        color: #333;
+        font-size: 26px;
+        font-weight: 600;
+      }
+
+      .editor-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 20px;
+        align-items: stretch;
+      }
+
+      .editor-panel {
+        display: flex;
+        min-width: 0;
+        flex-direction: column;
+        border: 1px solid #d5d5d5;
+        background: #fff;
+      }
+
+      .panel-label {
+        display: flex;
+        align-items: center;
+        min-height: 42px;
+        padding: 0 12px;
+        border-bottom: 1px solid var(--line);
+        color: var(--muted);
+        background: var(--panel);
+        font-size: 14px;
+        font-weight: 600;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+
+      /* ---------- 左侧输入分组 ---------- */
+      .group {
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .group:last-child {
+        border-bottom: 0;
+      }
+
+      .group-title {
+        margin-bottom: 10px;
+        color: var(--muted);
+        font-size: 14px;
+        font-weight: 600;
+      }
+
+      .fields {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .field {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .field-name {
+        color: var(--muted);
+        -webkit-user-select: none;
+        user-select: none;
+      }
+
+      .field .unit {
+        color: #999;
+      }
+
+      .num,
+      .hex-input {
+        padding: 8px 10px;
+        border: 1px solid #bdbdbd;
+        outline: 0;
+        color: var(--ink);
+        background: #fff;
+        font-family: Menlo, Monaco, Consolas, monospace;
+        font-size: 14px;
+      }
+
+      .num {
+        width: 68px;
+      }
+
+      .hex-wrap {
+        display: flex;
+        align-items: stretch;
+        max-width: 220px;
+      }
+
+      .hex-wrap .hash {
+        display: flex;
+        align-items: center;
+        padding: 0 10px;
+        border: 1px solid #bdbdbd;
+        border-right: 0;
+        color: var(--muted);
+        background: var(--panel);
+        font-family: Menlo, Monaco, Consolas, monospace;
+      }
+
+      .hex-input {
+        flex: 1;
+        min-width: 0;
+        border-left: 0;
+        text-transform: uppercase;
+      }
+
+      .num:focus,
+      .hex-input:focus {
+        box-shadow: inset 0 0 0 2px #bbdefb;
+      }
+
+      .hex-input.invalid {
+        box-shadow: inset 0 0 0 2px #ffcdd2;
+      }
+
+      /* 隐藏 number 输入的原生箭头，保持与整体风格一致的细边框 */
+      .num::-webkit-outer-spin-button,
+      .num::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+
+      .num {
+        -moz-appearance: textfield;
+        appearance: textfield;
+      }
+
+      /* ---------- 右侧预览 ---------- */
+      .preview-body {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        padding: 16px;
+      }
+
+      .swatch {
+        min-height: 180px;
+        flex: 1;
+        border: 1px solid var(--line);
+        border-radius: 2px;
+        background: #ff5733;
+      }
+
+      .value-list {
+        margin-top: 16px;
+        border-top: 1px dashed var(--line);
+        padding-top: 12px;
+      }
+
+      .value-list .row {
+        display: flex;
+        gap: 8px;
+        padding: 4px 0;
+        font-family: Menlo, Monaco, Consolas, monospace;
+        font-size: 13px;
+      }
+
+      .value-list .row .name {
+        flex: 0 0 52px;
+        color: var(--muted);
+        font-family: Arial, 'Microsoft YaHei', sans-serif;
+      }
+
+      .value-list .row .val {
+        color: var(--ink);
+        word-break: break-all;
+      }
+
+      /* ---------- 工具栏 ---------- */
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        margin-top: 14px;
+        border: 1px solid #bdbdbd;
+        background: #f5f5f5;
+      }
+
+      .toolbar button {
+        min-height: 44px;
+        padding: 0 17px;
+        border: 0;
+        border-right: 1px solid #bdbdbd;
+        color: #424242;
+        background: transparent;
+        font-size: 15px;
+      }
+
+      .toolbar button:hover {
+        color: #fff;
+        background: var(--blue);
+      }
+
+      .toolbar button.primary {
+        color: #fff;
+        background: var(--blue);
+      }
+
+      .toolbar button.primary:hover {
+        background: var(--blue-dark);
+      }
+
+      /* ---------- 最近使用 ---------- */
+      .recent {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+        margin-top: 18px;
+      }
+
+      .recent .label {
+        color: var(--muted);
+        font-weight: 600;
+      }
+
+      .recent .empty {
+        color: #aaa;
+      }
+
+      .recent .chip {
+        width: 30px;
+        height: 30px;
+        padding: 0;
+        border: 1px solid #bdbdbd;
+        border-radius: 3px;
+      }
+
+      .recent .chip:hover {
+        border-color: var(--blue);
+        box-shadow: 0 0 0 2px #bbdefb;
+      }
+
+      /* ---------- 复制成功提示 ---------- */
+      .toast {
+        position: fixed;
+        bottom: 32px;
+        left: 50%;
+        padding: 10px 22px;
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        color: #fff;
+        background: rgba(0, 0, 0, 0.75);
+        font-size: 14px;
+        opacity: 0;
+        transform: translate(-50%, 8px);
+        transition:
+          opacity 0.2s,
+          transform 0.2s;
+        pointer-events: none;
+      }
+
+      .toast.show {
+        opacity: 1;
+        transform: translate(-50%, 0);
+      }
+
+      @media (max-width: 840px) {
+        .page {
+          width: min(100% - 24px, 680px);
+        }
+
+        .top-nav {
+          margin: 0 -12px;
+          padding-left: 12px;
+        }
+
+        .top-nav a {
+          padding: 0 16px;
+          font-size: 16px;
+        }
+
+        .top-nav a:first-child {
+          padding-left: 16px;
+        }
+
+        .workspace {
+          padding-top: 22px;
+        }
+
+        .editor-grid {
+          grid-template-columns: 1fr;
+          gap: 16px;
+        }
+
+        .swatch {
+          min-height: 140px;
+        }
+      }
+
+      @media (max-width: 480px) {
+        h1 {
+          font-size: 23px;
+        }
+
+        .toolbar button {
+          flex: 1 0 50%;
+          border-bottom: 1px solid #bdbdbd;
+        }
+
+        .num {
+          width: 58px;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="page">
+      <nav class="top-nav" aria-label="颜色工具导航">
+        <a class="active" href="#color2hex">颜色转换</a>
+      </nav>
+
+      <main class="workspace" id="color2hex">
+        <h1>16进制RGB CMYK HSV颜色格式在线互转工具</h1>
+        <section class="editor-grid" aria-label="颜色转换区域">
+          <div class="editor-panel">
+            <div class="panel-label">颜色值输入</div>
+
+            <div class="group">
+              <div class="group-title">16进制 (HEX)</div>
+              <div class="fields">
+                <div class="hex-wrap">
+                  <span class="hash">#</span>
+                  <input
+                    class="hex-input"
+                    id="hex"
+                    type="text"
+                    maxlength="6"
+                    spellcheck="false"
+                    autocomplete="off"
+                    placeholder="FF5733"
+                    value="FF5733"
+                    aria-label="HEX 颜色值"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div class="group">
+              <div class="group-title">RGB</div>
+              <div class="fields">
+                <div class="field">
+                  <span class="field-name">R</span><input class="num" id="r" type="number" min="0" max="255" value="255" aria-label="红色" />
+                </div>
+                <div class="field">
+                  <span class="field-name">G</span><input class="num" id="g" type="number" min="0" max="255" value="87" aria-label="绿色" />
+                </div>
+                <div class="field">
+                  <span class="field-name">B</span><input class="num" id="b" type="number" min="0" max="255" value="51" aria-label="蓝色" />
+                </div>
+              </div>
+            </div>
+
+            <div class="group">
+              <div class="group-title">CMYK</div>
+              <div class="fields">
+                <div class="field">
+                  <span class="field-name">C</span><input class="num" id="c" type="number" min="0" max="100" value="0" aria-label="青色" /><span class="unit"
+                    >%</span
+                  >
+                </div>
+                <div class="field">
+                  <span class="field-name">M</span><input class="num" id="m" type="number" min="0" max="100" value="66" aria-label="品红" /><span class="unit"
+                    >%</span
+                  >
+                </div>
+                <div class="field">
+                  <span class="field-name">Y</span><input class="num" id="y" type="number" min="0" max="100" value="80" aria-label="黄色" /><span class="unit"
+                    >%</span
+                  >
+                </div>
+                <div class="field">
+                  <span class="field-name">K</span><input class="num" id="k" type="number" min="0" max="100" value="0" aria-label="黑色" /><span class="unit"
+                    >%</span
+                  >
+                </div>
+              </div>
+            </div>
+
+            <div class="group">
+              <div class="group-title">HSV</div>
+              <div class="fields">
+                <div class="field">
+                  <span class="field-name">H</span><input class="num" id="h" type="number" min="0" max="360" value="9" aria-label="色相" /><span class="unit"
+                    >°</span
+                  >
+                </div>
+                <div class="field">
+                  <span class="field-name">S</span><input class="num" id="s" type="number" min="0" max="100" value="80" aria-label="饱和度" /><span class="unit"
+                    >%</span
+                  >
+                </div>
+                <div class="field">
+                  <span class="field-name">V</span><input class="num" id="v" type="number" min="0" max="100" value="100" aria-label="明度" /><span class="unit"
+                    >%</span
+                  >
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="editor-panel">
+            <div class="panel-label">颜色预览</div>
+            <div class="preview-body">
+              <div class="swatch" id="swatch" aria-label="当前颜色预览"></div>
+              <div class="value-list" id="value-list" aria-live="polite"></div>
+            </div>
+          </div>
+        </section>
+
+        <div class="toolbar" role="toolbar" aria-label="颜色操作">
+          <button class="primary" id="copy-hex" type="button">复制HEX</button>
+          <button id="copy-rgb" type="button">复制RGB</button>
+          <button id="copy-css" type="button">复制CSS</button>
+          <button id="clear-button" type="button">清空</button>
+        </div>
+
+        <div class="recent" aria-label="最近使用的颜色">
+          <span class="label">您最近使用了：</span>
+          <span class="empty" id="recent-empty">暂无记录</span>
+          <span id="recent-chips" style="display: contents"></span>
+        </div>
+      </main>
+    </div>
+
+    <div class="toast" id="toast" role="status"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tinycolor/1.6.0/tinycolor.min.js"></script>
+    <script>
+      // ---------- 元素引用 ----------
+      const els = {
+        hex: document.querySelector('#hex'),
+        r: document.querySelector('#r'),
+        g: document.querySelector('#g'),
+        b: document.querySelector('#b'),
+        c: document.querySelector('#c'),
+        m: document.querySelector('#m'),
+        y: document.querySelector('#y'),
+        k: document.querySelector('#k'),
+        h: document.querySelector('#h'),
+        s: document.querySelector('#s'),
+        v: document.querySelector('#v')
+      };
+      const swatch = document.querySelector('#swatch');
+      const valueList = document.querySelector('#value-list');
+      const toast = document.querySelector('#toast');
+
+      // 当前颜色（null 表示已清空）
+      let current = { r: 255, g: 87, b: 51 };
+
+      // ---------- 颜色转换（基于 tinycolor；tinycolor 1.6.0 不支持 CMYK，故 CMYK 保留本地实现） ----------
+      function clamp(value, min, max) {
+        return Math.min(max, Math.max(min, value));
+      }
+
+      function parseHex(text) {
+        if (!/^[0-9a-fA-F]{6}$/.test(text)) return null;
+        const color = tinycolor(text);
+        if (!color.isValid) return null;
+        const { r, g, b } = color.toRgb();
+        return { r, g, b };
+      }
+
+      function toHex(rgb) {
+        return tinycolor(rgb).toHexString().slice(1).toUpperCase();
+      }
+
+      function rgbToCmyk({ r, g, b }) {
+        const rn = r / 255,
+          gn = g / 255,
+          bn = b / 255;
+        const k = 1 - Math.max(rn, gn, bn);
+        if (k === 1) return { c: 0, m: 0, y: 0, k: 100 };
+        const c = (1 - rn - k) / (1 - k);
+        const m = (1 - gn - k) / (1 - k);
+        const y = (1 - bn - k) / (1 - k);
+        return { c: Math.round(c * 100), m: Math.round(m * 100), y: Math.round(y * 100), k: Math.round(k * 100) };
+      }
+
+      function cmykToRgb({ c, m, y, k }) {
+        return {
+          r: Math.round(255 * (1 - c / 100) * (1 - k / 100)),
+          g: Math.round(255 * (1 - m / 100) * (1 - k / 100)),
+          b: Math.round(255 * (1 - y / 100) * (1 - k / 100))
+        };
+      }
+
+      function rgbToHsv(rgb) {
+        // tinycolor 的 toHsv 返回 s/v 为 0-1，需换算为百分比
+        const { h, s, v } = tinycolor(rgb).toHsv();
+        return { h: Math.round(h), s: Math.round(s * 100), v: Math.round(v * 100) };
+      }
+
+      function hsvToRgb({ h, s, v }) {
+        // 1.6.0 的对象入参要求 s/v 为 0-1，这里用带 % 的字符串形式
+        const { r, g, b } = tinycolor(`hsv(${h}, ${s}%, ${v}%)`).toRgb();
+        return { r, g, b };
+      }
+
+      // ---------- 渲染 ----------
+      // source: 本次改动的来源字段，避免覆盖用户正在输入的内容
+      function render(source) {
+        const active = document.activeElement;
+        const set = (el, value) => {
+          if (el !== active) el.value = value;
+        };
+
+        if (!current) {
+          swatch.style.background = '#fff';
+          valueList.replaceChildren(row('HEX', '—'), row('RGB', '—'), row('CMYK', '—'), row('HSV', '—'));
+          return;
+        }
+
+        const hex = toHex(current);
+        const cmyk = rgbToCmyk(current);
+        const hsv = rgbToHsv(current);
+
+        if (source !== 'hex') set(els.hex, hex);
+        set(els.r, current.r);
+        set(els.g, current.g);
+        set(els.b, current.b);
+        set(els.c, cmyk.c);
+        set(els.m, cmyk.m);
+        set(els.y, cmyk.y);
+        set(els.k, cmyk.k);
+        set(els.h, hsv.h);
+        set(els.s, hsv.s);
+        set(els.v, hsv.v);
+
+        swatch.style.background = '#' + hex;
+        valueList.replaceChildren(
+          row('HEX', '#' + hex),
+          row('RGB', `rgb(${current.r}, ${current.g}, ${current.b})`),
+          row('CMYK', `cmyk(${cmyk.c}%, ${cmyk.m}%, ${cmyk.y}%, ${cmyk.k}%)`),
+          row('HSV', `hsv(${hsv.h}°, ${hsv.s}%, ${hsv.v}%)`)
+        );
+      }
+
+      function row(name, val) {
+        const div = document.createElement('div');
+        div.className = 'row';
+        const n = document.createElement('span');
+        n.className = 'name';
+        n.textContent = name;
+        const v = document.createElement('span');
+        v.className = 'val';
+        v.textContent = val;
+        div.append(n, v);
+        return div;
+      }
+
+      // ---------- 输入联动 ----------
+      function numValue(el) {
+        const n = Number(el.value);
+        return Number.isFinite(n) ? n : null;
+      }
+
+      function readRgb() {
+        const r = numValue(els.r),
+          g = numValue(els.g),
+          b = numValue(els.b);
+        if (r === null || g === null || b === null) return null;
+        return { r: clamp(Math.round(r), 0, 255), g: clamp(Math.round(g), 0, 255), b: clamp(Math.round(b), 0, 255) };
+      }
+
+      function readCmyk() {
+        const c = numValue(els.c),
+          m = numValue(els.m),
+          y = numValue(els.y),
+          k = numValue(els.k);
+        if (c === null || m === null || y === null || k === null) return null;
+        return { c: clamp(Math.round(c), 0, 100), m: clamp(Math.round(m), 0, 100), y: clamp(Math.round(y), 0, 100), k: clamp(Math.round(k), 0, 100) };
+      }
+
+      function readHsv() {
+        const h = numValue(els.h),
+          s = numValue(els.s),
+          v = numValue(els.v);
+        if (h === null || s === null || v === null) return null;
+        return { h: clamp(Math.round(h), 0, 360), s: clamp(Math.round(s), 0, 100), v: clamp(Math.round(v), 0, 100) };
+      }
+
+      els.hex.addEventListener('input', () => {
+        const valid = parseHex(els.hex.value.trim());
+        els.hex.classList.toggle('invalid', !valid);
+        if (valid) {
+          current = valid;
+          render('hex');
+        }
+      });
+      els.hex.addEventListener('blur', () => els.hex.classList.remove('invalid'));
+
+      ['r', 'g', 'b'].forEach(id => {
+        els[id].addEventListener('input', () => {
+          const rgb = readRgb();
+          if (rgb) {
+            current = rgb;
+            render(id);
+          }
+        });
+      });
+
+      ['c', 'm', 'y', 'k'].forEach(id => {
+        els[id].addEventListener('input', () => {
+          const cmyk = readCmyk();
+          const rgb = cmyk && cmykToRgb(cmyk);
+          if (rgb) {
+            current = rgb;
+            render(id);
+          }
+        });
+      });
+
+      ['h', 's', 'v'].forEach(id => {
+        els[id].addEventListener('input', () => {
+          const hsv = readHsv();
+          if (hsv) {
+            current = hsvToRgb(hsv);
+            render(id);
+          }
+        });
+      });
+
+      // number 输入框失焦时把空值/越界值归一化
+      Object.values(els).forEach(el => {
+        if (el === els.hex) return;
+        el.addEventListener('blur', () => {
+          if (current) render(null);
+        });
+      });
+
+      // ---------- 复制 / 清空 ----------
+      let toastTimer = null;
+      function showToast(text) {
+        toast.textContent = text;
+        toast.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toast.classList.remove('show'), 1600);
+      }
+
+      async function copyText(text, tip) {
+        try {
+          await navigator.clipboard.writeText(text);
+        } catch {
+          const ta = document.createElement('textarea');
+          ta.value = text;
+          ta.style.position = 'fixed';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          ta.remove();
+        }
+        showToast(tip);
+      }
+
+      document.querySelector('#copy-hex').addEventListener('click', () => {
+        if (!current) return;
+        copyText('#' + toHex(current), '已复制 HEX');
+        remember(current);
+      });
+      document.querySelector('#copy-rgb').addEventListener('click', () => {
+        if (!current) return;
+        copyText(`rgb(${current.r}, ${current.g}, ${current.b})`, '已复制 RGB');
+        remember(current);
+      });
+      document.querySelector('#copy-css').addEventListener('click', () => {
+        if (!current) return;
+        copyText(`background-color: #${toHex(current)};`, '已复制 CSS');
+        remember(current);
+      });
+      document.querySelector('#clear-button').addEventListener('click', () => {
+        current = null;
+        Object.values(els).forEach(el => (el.value = ''));
+        render(null);
+      });
+
+      // ---------- 最近使用 ----------
+      const RECENT_KEY = 'color2hex-recent';
+
+      function loadRecent() {
+        try {
+          const list = JSON.parse(localStorage.getItem(RECENT_KEY));
+          return Array.isArray(list) ? list : [];
+        } catch {
+          return [];
+        }
+      }
+
+      function remember(rgb) {
+        const hex = toHex(rgb);
+        const list = loadRecent().filter(item => item !== hex);
+        list.unshift(hex);
+        try {
+          localStorage.setItem(RECENT_KEY, JSON.stringify(list.slice(0, 12)));
+        } catch {
+          /* 忽略存储失败 */
+        }
+        renderRecent();
+      }
+
+      function renderRecent() {
+        const chips = document.querySelector('#recent-chips');
+        const empty = document.querySelector('#recent-empty');
+        const list = loadRecent();
+        empty.style.display = list.length ? 'none' : '';
+        chips.replaceChildren(
+          ...list.map(hex => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'chip';
+            btn.style.background = '#' + hex;
+            btn.title = '#' + hex;
+            btn.addEventListener('click', () => {
+              const rgb = parseHex(hex);
+              if (!rgb) return;
+              current = rgb;
+              render(null);
+            });
+            return btn;
+          })
+        );
+      }
+
+      render(null);
+      renderRecent();
+    </script>
+  </body>
+</html>

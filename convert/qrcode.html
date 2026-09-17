@@ -1,0 +1,870 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>二维码生成和解码</title>
+    <style>
+      :root {
+        --blue: #2196f3;
+        --blue-dark: #1976d2;
+        --ink: #424242;
+        --muted: #757575;
+        --line: #e0e0e0;
+        --panel: #f5f5f5;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        background: #fff;
+        font-family: Arial, 'Microsoft YaHei', sans-serif;
+        font-size: 14px;
+      }
+
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+      }
+
+      button {
+        cursor: pointer;
+      }
+
+      .page {
+        width: min(1160px, calc(100% - 32px));
+        margin: 0 auto;
+      }
+
+      .top-nav {
+        display: flex;
+        align-items: stretch;
+        min-height: 60px;
+        overflow-x: auto;
+        border-bottom: 1px solid var(--line);
+        white-space: nowrap;
+      }
+
+      .top-nav a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 60px;
+        padding: 0 26px;
+        border-right: 1px solid var(--line);
+        color: #424242;
+        font-size: 18px;
+        text-decoration: none;
+      }
+
+      .top-nav a:first-child {
+        padding-left: 28px;
+      }
+
+      .top-nav a:hover,
+      .top-nav a.active {
+        color: var(--blue);
+      }
+
+      .top-nav a.active {
+        border-bottom: 3px solid var(--blue);
+      }
+
+      .workspace {
+        padding: 24px 0 42px;
+      }
+
+      h1 {
+        margin: 0 0 16px;
+        color: #333;
+        font-size: 26px;
+        font-weight: 600;
+      }
+
+      /* 编码 / 解码 选项卡 */
+      .tabs {
+        display: flex;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .tabs button {
+        margin-bottom: -1px;
+        padding: 10px 26px;
+        border: 1px solid transparent;
+        border-bottom: 0;
+        color: var(--ink);
+        background: transparent;
+        font-size: 15px;
+      }
+
+      .tabs button:hover {
+        color: var(--blue);
+      }
+
+      .tabs button.active {
+        border-color: var(--line);
+        border-top: 3px solid var(--blue);
+        padding-top: 8px;
+        color: var(--blue);
+        background: #fff;
+        font-weight: 600;
+      }
+
+      .tab-pane {
+        display: none;
+        padding: 24px 4px 8px;
+      }
+
+      .tab-pane.active {
+        display: block;
+      }
+
+      .field-label-text {
+        margin: 0 0 10px;
+        color: #333;
+        font-size: 15px;
+      }
+
+      /* 输入文本域 */
+      .text-area {
+        width: 100%;
+        min-height: 96px;
+        margin-bottom: 18px;
+        padding: 12px 14px;
+        border: 1px solid #bdbdbd;
+        outline: 0;
+        resize: vertical;
+        color: var(--ink);
+        font-size: 15px;
+        line-height: 1.6;
+      }
+
+      .text-area:focus {
+        box-shadow: inset 0 0 0 2px #bbdefb;
+      }
+
+      /* 两列参数区 */
+      .field-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px 24px;
+        margin-bottom: 18px;
+      }
+
+      /* 字段行：仿表格的 标签格 + 控件格 */
+      .field-row {
+        display: flex;
+        align-items: stretch;
+        min-height: 46px;
+        border: 1px solid #bdbdbd;
+      }
+
+      .field-label {
+        display: flex;
+        flex: 0 0 auto;
+        align-items: center;
+        padding: 0 14px;
+        border-right: 1px solid var(--line);
+        color: var(--ink);
+        background: var(--panel);
+        white-space: nowrap;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+
+      .field-control {
+        min-width: 0;
+        flex: 1;
+        padding: 0 14px;
+        border: 0;
+        outline: 0;
+        color: var(--ink);
+        background: #fff;
+        font-size: 15px;
+      }
+
+      select.field-control {
+        cursor: pointer;
+      }
+
+      .field-control:focus {
+        box-shadow: inset 0 0 0 2px #bbdefb;
+      }
+
+      .field-control::placeholder {
+        color: #9e9e9e;
+      }
+
+      /* 颜色字段：整格显示所选颜色 */
+      .color-field {
+        position: relative;
+        display: flex;
+        align-items: center;
+        min-width: 0;
+        flex: 1;
+        padding: 0 14px;
+        overflow: hidden;
+        font-family: Menlo, Monaco, Consolas, monospace;
+        font-size: 15px;
+      }
+
+      .color-field input[type='color'] {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        padding: 0;
+        border: 0;
+        opacity: 0;
+        cursor: pointer;
+      }
+
+      /* 图片上传行 */
+      .upload-row {
+        display: flex;
+        align-items: stretch;
+        gap: 24px;
+        margin-bottom: 18px;
+      }
+
+      .upload-row .field-row {
+        width: 382px;
+        max-width: 100%;
+        flex: 0 0 auto;
+      }
+
+      .btn-secondary {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 46px;
+        padding: 0 22px;
+        border: 1px solid #bdbdbd;
+        color: var(--ink);
+        background: var(--panel);
+        font-size: 15px;
+        white-space: nowrap;
+      }
+
+      .btn-secondary:hover {
+        color: var(--blue);
+        border-color: var(--blue);
+      }
+
+      .btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 46px;
+        padding: 0 26px;
+        border: 0;
+        color: #fff;
+        background: var(--blue);
+        font-size: 15px;
+        white-space: nowrap;
+      }
+
+      .btn:hover {
+        background: var(--blue-dark);
+      }
+
+      .btn:disabled {
+        cursor: not-allowed;
+        background: #90caf9;
+      }
+
+      /* 生成二维码行：按钮与渲染方式并排 */
+      .action-row {
+        display: flex;
+        align-items: stretch;
+        gap: 24px;
+        margin-top: 26px;
+      }
+
+      .action-row .field-row {
+        width: 382px;
+        max-width: 100%;
+        flex: 0 0 auto;
+      }
+
+      .action-row .btn {
+        width: 200px;
+      }
+
+      /* 图片上传区：左侧两行控件 + 右侧图片展示区 */
+      .upload-group {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+      }
+
+      .upload-col {
+        min-width: 0;
+      }
+
+      .upload-col .upload-row {
+        margin-bottom: 0;
+      }
+
+      .upload-col .upload-row + .upload-row {
+        margin-top: 18px;
+      }
+
+      .logo-preview {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 108px;
+        height: 108px;
+        flex: 0 0 auto;
+        border: 1px dashed #bdbdbd;
+        color: var(--muted);
+        background: var(--panel);
+        font-size: 14px;
+        overflow: hidden;
+      }
+
+      .logo-preview img {
+        max-width: 100%;
+        max-height: 100%;
+      }
+
+      /* 解码结果 */
+      .error-tip {
+        margin: -8px 0 18px;
+        color: #d32f2f;
+        font-size: 13px;
+      }
+
+      .error-tip:empty {
+        display: none;
+      }
+
+      /* 二维码输出区 */
+      .qrcode-output {
+        margin-top: 26px;
+        padding: 20px;
+        border: 1px solid var(--line);
+        background: var(--panel);
+      }
+
+      .qrcode-output:empty {
+        display: none;
+      }
+
+      .qrcode-output canvas {
+        display: block;
+      }
+
+      .qrcode-output table {
+        border-collapse: collapse;
+      }
+
+      .qrcode-output td {
+        padding: 0;
+      }
+
+      .qrcode-output .em-cell {
+        display: block;
+        font-size: 0;
+        line-height: 0;
+      }
+
+      .qrcode-output .em-cell span {
+        display: inline-block;
+        width: 1em;
+        height: 1em;
+        font-size: 1rem;
+      }
+
+      .output-actions {
+        margin-top: 14px;
+      }
+
+      .decode-result {
+        margin-top: 18px;
+      }
+
+      @media (max-width: 840px) {
+        .page {
+          width: min(100% - 24px, 680px);
+        }
+
+        .top-nav {
+          margin: 0 -12px;
+          padding-left: 12px;
+        }
+
+        .top-nav a {
+          padding: 0 16px;
+          font-size: 16px;
+        }
+
+        .top-nav a:first-child {
+          padding-left: 16px;
+        }
+
+        .workspace {
+          padding-top: 22px;
+        }
+
+        .upload-row .field-row,
+        .action-row .field-row {
+          width: 320px;
+        }
+      }
+
+      @media (max-width: 600px) {
+        h1 {
+          font-size: 22px;
+        }
+
+        .field-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .upload-group {
+          flex-wrap: wrap;
+        }
+
+        .upload-col {
+          flex: 1 1 100%;
+        }
+
+        .upload-row,
+        .action-row {
+          flex-wrap: wrap;
+        }
+
+        .upload-row .field-row,
+        .action-row .field-row {
+          width: 100%;
+        }
+
+        .upload-row .btn-secondary,
+        .action-row .btn {
+          flex: 1;
+          width: auto;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="page">
+      <nav class="top-nav" aria-label="转换工具导航">
+        <a class="active" href="#qrcode">二维码生成和解码</a>
+      </nav>
+
+      <main class="workspace" id="qrcode">
+        <h1>二维码生成和解码</h1>
+
+        <div class="tabs" role="tablist" aria-label="编码解码切换">
+          <button class="active" id="tab-encode" type="button" role="tab" aria-selected="true" aria-controls="pane-encode">编码</button>
+          <button id="tab-decode" type="button" role="tab" aria-selected="false" aria-controls="pane-decode">解码</button>
+        </div>
+
+        <!-- 编码 -->
+        <section class="tab-pane active" id="pane-encode" role="tabpanel" aria-labelledby="tab-encode">
+          <div class="encode-form">
+            <p class="field-label-text">输入文本：</p>
+            <textarea class="text-area" id="encode-text" spellcheck="false" placeholder="请在此输入要生成二维码的文本或网址"></textarea>
+
+            <div class="field-grid">
+              <div class="field-row">
+                <span class="field-label">纠错等级：</span>
+                <select class="field-control" id="encode-eclevel">
+                  <option value="L">Level L (7%)</option>
+                  <option value="M">Level M (15%)</option>
+                  <option value="Q">Level Q (25%)</option>
+                  <option value="H" selected>Level H (30%)</option>
+                </select>
+              </div>
+              <div class="field-row">
+                <span class="field-label">编码方式：</span>
+                <select class="field-control" id="encode-mode">
+                  <option value="Byte" selected>8bit</option>
+                  <option value="Alphanumeric">Alphanumeric</option>
+                  <option value="Numeric">Numeric</option>
+                </select>
+              </div>
+              <div class="field-row">
+                <span class="field-label">色块大小：</span>
+                <input class="field-control" id="encode-msize" type="number" min="1" max="10" value="5" />
+              </div>
+              <div class="field-row">
+                <span class="field-label">留白大小：</span>
+                <input class="field-control" id="encode-margin" type="number" min="0" max="10" value="2" />
+              </div>
+              <div class="field-row">
+                <span class="field-label">前景颜色：</span>
+                <span class="color-field" id="fg-field">
+                  <input type="color" id="encode-mcolor" value="#000000" aria-label="前景颜色" />
+                  <span id="fg-text">#000000</span>
+                </span>
+              </div>
+              <div class="field-row">
+                <span class="field-label">背景颜色：</span>
+                <span class="color-field" id="bg-field">
+                  <input type="color" id="encode-bgcolor" value="#ffffff" aria-label="背景颜色" />
+                  <span id="bg-text">#FFFFFF</span>
+                </span>
+              </div>
+            </div>
+
+            <p class="field-label-text">选择二维码图片：</p>
+
+            <div class="upload-group">
+              <div class="upload-col">
+                <div class="upload-row">
+                  <div class="field-row">
+                    <span class="field-label">本地图片：</span>
+                    <input class="field-control" id="upload-file" type="text" readonly placeholder="请选择文件" />
+                  </div>
+                  <button class="btn-secondary" id="upload-logo-btn" type="button">上传图片</button>
+                  <input type="file" id="upload-logo" accept="image/*" hidden />
+                </div>
+
+                <div class="upload-row">
+                  <div class="field-row">
+                    <span class="field-label">LogoUrl：</span>
+                    <input class="field-control" id="encode-logo" type="url" placeholder="请输入图片地址" />
+                  </div>
+                  <button class="btn-secondary" id="load-logo-btn" type="button">加载图片</button>
+                </div>
+              </div>
+
+              <div class="logo-preview" id="logo-preview" aria-label="图片展示区">图片展示区</div>
+            </div>
+
+            <div class="action-row">
+              <div class="field-row">
+                <span class="field-label">渲染方式：</span>
+                <select class="field-control" id="encode-render">
+                  <option value="canvas" selected>Canvas</option>
+                  <option value="table">Table</option>
+                  <option value="em">Em</option>
+                </select>
+              </div>
+              <button class="btn" id="create-qrcode-btn" type="button">生成二维码</button>
+            </div>
+          </div>
+
+          <p class="error-tip" id="encode-error"></p>
+          <div class="qrcode-output" id="qrcode-output"></div>
+          <div class="output-actions">
+            <button class="btn" id="download-qrcode-btn" type="button" hidden>下载二维码</button>
+          </div>
+        </section>
+
+        <!-- 解码 -->
+        <section class="tab-pane" id="pane-decode" role="tabpanel" aria-labelledby="tab-decode">
+          <div class="upload-row">
+            <div class="field-row">
+              <span class="field-label">选择二维码图片：</span>
+              <input class="field-control" id="decode-file-name" type="text" readonly placeholder="请选择文件" />
+            </div>
+            <button class="btn-secondary" id="decode-upload-btn" type="button">上传二维码图片</button>
+            <input type="file" id="decode-file" accept="image/*" hidden />
+            <button class="btn" id="decode-btn" type="button">解码二维码图片</button>
+          </div>
+
+          <p class="error-tip" id="decode-error"></p>
+
+          <p class="field-label-text">解码值为</p>
+          <textarea class="text-area" id="decode-result" rows="3" readonly placeholder="解码内容...."></textarea>
+        </section>
+      </main>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.5.0/qrcode.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+    <script>
+      // ---------- 选项卡切换 ----------
+      const tabButtons = document.querySelectorAll('.tabs button');
+      tabButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          tabButtons.forEach(b => {
+            b.classList.toggle('active', b === btn);
+            b.setAttribute('aria-selected', String(b === btn));
+          });
+          document.querySelectorAll('.tab-pane').forEach(pane => {
+            pane.classList.toggle('active', pane.id === btn.getAttribute('aria-controls'));
+          });
+        });
+      });
+
+      // ---------- 颜色字段：整格展示所选颜色 ----------
+      function bindColorField(inputId, textId, fieldId) {
+        const input = document.getElementById(inputId);
+        const text = document.getElementById(textId);
+        const field = document.getElementById(fieldId);
+
+        const sync = () => {
+          const value = input.value.toUpperCase();
+          text.textContent = value;
+          field.style.background = input.value;
+          // 根据亮度自动切换文字颜色，保证可读
+          const r = parseInt(value.slice(1, 3), 16);
+          const g = parseInt(value.slice(3, 5), 16);
+          const b = parseInt(value.slice(5, 7), 16);
+          text.style.color = r * 0.299 + g * 0.587 + b * 0.114 > 150 ? '#424242' : '#fff';
+        };
+        input.addEventListener('input', sync);
+        sync();
+      }
+      bindColorField('encode-mcolor', 'fg-text', 'fg-field');
+      bindColorField('encode-bgcolor', 'bg-text', 'bg-field');
+
+      // ---------- Logo 图片选择与展示 ----------
+      let logoImage = null;
+      const logoPreview = document.getElementById('logo-preview');
+
+      function showLogo(img) {
+        logoImage = img;
+        logoPreview.innerHTML = '';
+        logoPreview.appendChild(img);
+      }
+
+      function loadLogoFromSrc(src) {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => showLogo(img);
+        img.onerror = () => {
+          encodeError.textContent = '图片加载失败，请检查地址或文件';
+        };
+        img.src = src;
+      }
+
+      const encodeError = document.getElementById('encode-error');
+
+      document.getElementById('upload-logo-btn').addEventListener('click', () => {
+        document.getElementById('upload-logo').click();
+      });
+      document.getElementById('upload-logo').addEventListener('change', function () {
+        const file = this.files[0];
+        if (!file) return;
+        document.getElementById('upload-file').value = file.name;
+        const reader = new FileReader();
+        reader.onload = e => loadLogoFromSrc(e.target.result);
+        reader.readAsDataURL(file);
+      });
+
+      document.getElementById('load-logo-btn').addEventListener('click', () => {
+        const url = document.getElementById('encode-logo').value.trim();
+        if (!url) {
+          encodeError.textContent = '请输入图片地址';
+          return;
+        }
+        encodeError.textContent = '';
+        document.getElementById('upload-file').value = '';
+        loadLogoFromSrc(url);
+      });
+
+      // ---------- 生成二维码 ----------
+      const output = document.getElementById('qrcode-output');
+      const downloadBtn = document.getElementById('download-qrcode-btn');
+      let lastCanvas = null;
+
+      function readOptions() {
+        return {
+          text: document.getElementById('encode-text').value,
+          ecLevel: document.getElementById('encode-eclevel').value,
+          mode: document.getElementById('encode-mode').value,
+          cellSize: clampInt(document.getElementById('encode-msize').value, 1, 10, 5),
+          margin: clampInt(document.getElementById('encode-margin').value, 0, 10, 2),
+          fg: document.getElementById('encode-mcolor').value,
+          bg: document.getElementById('encode-bgcolor').value,
+          render: document.getElementById('encode-render').value
+        };
+      }
+
+      function clampInt(value, min, max, fallback) {
+        const n = parseInt(value, 10);
+        if (Number.isNaN(n)) return fallback;
+        return Math.min(max, Math.max(min, n));
+      }
+
+      // qrcode.js 会自动选择最短编码，这里按用户选择的编码方式校验内容
+      const modePatterns = {
+        Numeric: /^[0-9]+$/,
+        Alphanumeric: /^[0-9A-Z $%*+\-.\/:]+$/
+      };
+
+      function buildQr(options) {
+        const pattern = modePatterns[options.mode];
+        if (pattern && !pattern.test(options.text)) {
+          throw new Error('mode mismatch');
+        }
+        // QRCode.create 返回模型：modules.size 为模块边长，modules.data 为扁平数组（1 为深色）
+        // errorCorrectionLevel 直接接受 'L'/'M'/'Q'/'H' 字符串
+        return QRCode.create(options.text, { errorCorrectionLevel: options.ecLevel });
+      }
+
+      function isDark(qr, row, col) {
+        return !!qr.modules.data[row * qr.modules.size + col];
+      }
+
+      function renderCanvas(qr, options) {
+        const count = qr.modules.size;
+        const size = (count + options.margin * 2) * options.cellSize;
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+
+        ctx.fillStyle = options.bg;
+        ctx.fillRect(0, 0, size, size);
+        ctx.fillStyle = options.fg;
+        for (let row = 0; row < count; row++) {
+          for (let col = 0; col < count; col++) {
+            if (isDark(qr, row, col)) {
+              ctx.fillRect((col + options.margin) * options.cellSize, (row + options.margin) * options.cellSize, options.cellSize, options.cellSize);
+            }
+          }
+        }
+
+        // 居中叠加 Logo，并留出白色衬底
+        if (logoImage) {
+          const logoSize = Math.floor(size * 0.22);
+          const pad = Math.floor(logoSize * 0.12);
+          const x = Math.floor((size - logoSize) / 2);
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(x - pad, x - pad, logoSize + pad * 2, logoSize + pad * 2);
+          ctx.drawImage(logoImage, x, x, logoSize, logoSize);
+        }
+        return canvas;
+      }
+
+      function renderTable(qr, options) {
+        const count = qr.modules.size;
+        const table = document.createElement('table');
+        const style = `width:${options.cellSize}px;height:${options.cellSize}px`;
+        for (let row = 0; row < count; row++) {
+          const tr = document.createElement('tr');
+          for (let col = 0; col < count; col++) {
+            const td = document.createElement('td');
+            td.setAttribute('style', `${style};background:${isDark(qr, row, col) ? options.fg : options.bg}`);
+            tr.appendChild(td);
+          }
+          table.appendChild(tr);
+        }
+        const wrap = document.createElement('div');
+        wrap.style.cssText = `display:inline-block;padding:${options.margin * options.cellSize}px;background:${options.bg}`;
+        wrap.appendChild(table);
+        return wrap;
+      }
+
+      function renderEm(qr, options) {
+        const count = qr.modules.size;
+        const wrap = document.createElement('div');
+        wrap.style.cssText = `display:inline-block;padding:${options.margin}em;background:${options.bg};font-size:${options.cellSize * 2}px`;
+        for (let row = 0; row < count; row++) {
+          const line = document.createElement('span');
+          line.className = 'em-cell';
+          for (let col = 0; col < count; col++) {
+            const cell = document.createElement('span');
+            cell.style.background = isDark(qr, row, col) ? options.fg : options.bg;
+            line.appendChild(cell);
+          }
+          wrap.appendChild(line);
+        }
+        return wrap;
+      }
+
+      document.getElementById('create-qrcode-btn').addEventListener('click', () => {
+        encodeError.textContent = '';
+        lastCanvas = null;
+        downloadBtn.hidden = true;
+        output.innerHTML = '';
+
+        const options = readOptions();
+        if (!options.text) {
+          encodeError.textContent = '请输入要生成二维码的文本';
+          return;
+        }
+
+        let qr;
+        try {
+          qr = buildQr(options);
+        } catch (e) {
+          encodeError.textContent = '生成失败：文本过长或编码方式与内容不匹配';
+          return;
+        }
+
+        if (options.render === 'canvas') {
+          lastCanvas = renderCanvas(qr, options);
+          output.appendChild(lastCanvas);
+          downloadBtn.hidden = false;
+        } else if (options.render === 'table') {
+          output.appendChild(renderTable(qr, options));
+        } else {
+          output.appendChild(renderEm(qr, options));
+        }
+      });
+
+      // ---------- 下载二维码 ----------
+      downloadBtn.addEventListener('click', () => {
+        if (!lastCanvas) return;
+        const a = document.createElement('a');
+        a.href = lastCanvas.toDataURL('image/png');
+        a.download = 'qrcode.png';
+        a.click();
+      });
+
+      // ---------- 解码二维码 ----------
+      const decodeError = document.getElementById('decode-error');
+      const decodeResult = document.getElementById('decode-result');
+      let decodeImage = null;
+
+      document.getElementById('decode-upload-btn').addEventListener('click', () => {
+        document.getElementById('decode-file').click();
+      });
+      document.getElementById('decode-file').addEventListener('change', function () {
+        const file = this.files[0];
+        decodeError.textContent = '';
+        decodeResult.value = '';
+        decodeImage = null;
+        if (!file) return;
+        document.getElementById('decode-file-name').value = file.name;
+        const reader = new FileReader();
+        reader.onload = e => {
+          const img = new Image();
+          img.onload = () => {
+            decodeImage = img;
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+
+      document.getElementById('decode-btn').addEventListener('click', () => {
+        decodeError.textContent = '';
+        decodeResult.value = '';
+        if (!decodeImage) {
+          decodeError.textContent = '请先上传二维码图片';
+          return;
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = decodeImage.naturalWidth;
+        canvas.height = decodeImage.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(decodeImage, 0, 0);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const code = jsQR(imageData.data, canvas.width, canvas.height);
+
+        if (code && code.data) {
+          decodeResult.value = code.data;
+        } else {
+          decodeError.textContent = '未能识别到二维码内容，请更换清晰度更高的图片';
+        }
+      });
+    </script>
+  </body>
+</html>

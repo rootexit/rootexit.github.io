@@ -1,0 +1,658 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>jwt解密/加密</title>
+    <link rel="stylesheet" href="../css/base.css" />
+    <link rel="stylesheet" href="../css/layout.css" />
+    <link rel="stylesheet" href="../css/editor.css" />
+    <link rel="stylesheet" href="../css/responsive.css" />
+    <style>
+      /* ===== 本页差异样式（通用部分已提取至 ../css/*.css） ===== */
+      .jwt-grid {
+        display: grid;
+        grid-template-columns: 1.1fr 0.72fr 1.6fr;
+        gap: 20px;
+        align-items: stretch;
+      }
+
+      .jwt-grid .editor-panel {
+        min-height: 620px;
+      }
+
+      /* 面板内的字段标题行（JWT Token / 头部/Header / 对称密钥…） */
+      .field-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--line);
+        color: var(--ink);
+        font-weight: 600;
+      }
+
+      .field-head .actions {
+        display: flex;
+        gap: 8px;
+      }
+
+      .mini-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 10px;
+        border: 1px solid #bdbdbd;
+        border-radius: 2px;
+        color: #424242;
+        background: #fff;
+        font-size: 13px;
+      }
+
+      .mini-btn:hover {
+        color: #fff;
+        background: var(--blue);
+        border-color: var(--blue);
+      }
+
+      .mini-btn .icon {
+        font-size: 12px;
+        line-height: 1;
+      }
+
+      /* 编码区 token 输入框 */
+      #token-text {
+        min-height: 560px;
+        word-break: break-all;
+        color: #6a1b9a;
+      }
+
+      /* 操作区 */
+      .ops-body {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        padding: 14px;
+      }
+
+      .ops-body label {
+        color: var(--ink);
+      }
+
+      .ops-body select {
+        width: 100%;
+        padding: 8px 10px;
+        border: 1px solid #bdbdbd;
+        border-radius: 2px;
+        outline: 0;
+        color: #424242;
+        background: #fff;
+        font: inherit;
+      }
+
+      .ops-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        width: 100%;
+        min-height: 40px;
+        padding: 0 12px;
+        border: 1px solid #bdbdbd;
+        border-radius: 2px;
+        color: #424242;
+        background: #fff;
+        font-size: 15px;
+      }
+
+      .ops-btn:hover {
+        color: #fff;
+        background: var(--blue);
+        border-color: var(--blue);
+      }
+
+      .ops-link {
+        color: var(--blue);
+        font-weight: 600;
+        text-decoration: none;
+      }
+
+      .ops-link:hover {
+        text-decoration: underline;
+      }
+
+      #verify-msg {
+        margin: 0;
+        color: #d32f2f;
+        font-size: 13px;
+        white-space: pre-wrap;
+        word-break: break-all;
+      }
+
+      #verify-msg.ok {
+        color: #2e7d32;
+      }
+
+      #verify-msg:empty {
+        display: none;
+      }
+
+      /* 解码区 JSON 视图（contenteditable + 语法着色） */
+      .code-view {
+        min-height: 150px;
+        max-height: 210px;
+        padding: 12px 14px;
+        outline: 0;
+        overflow: auto;
+        scrollbar-width: none;
+        color: #424242;
+        font-family: Menlo, Monaco, Consolas, monospace;
+        font-size: 14px;
+        line-height: 1.7;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+
+      .code-view::-webkit-scrollbar {
+        display: none;
+      }
+
+      .code-view:focus {
+        box-shadow: inset 0 0 0 2px #bbdefb;
+      }
+
+      .code-view .j-key {
+        color: #a31515;
+      }
+
+      .code-view .j-str {
+        color: #c41a16;
+      }
+
+      .code-view .j-num {
+        color: #1a7f37;
+      }
+
+      .code-view .j-bool {
+        color: #0000ff;
+      }
+
+      .decode-divider {
+        border-bottom: 1px solid var(--line);
+      }
+
+      #secret-input {
+        width: calc(100% - 24px);
+        margin: 12px;
+        padding: 8px 10px;
+        border: 1px solid #bdbdbd;
+        border-radius: 2px;
+        outline: 0;
+        color: #424242;
+        font: inherit;
+      }
+
+      #secret-input:focus {
+        border-color: var(--blue);
+      }
+
+      /* 非对称密钥（私钥/公钥）输入区 */
+      .key-area {
+        display: block;
+        width: calc(100% - 24px);
+        height: 96px;
+        margin: 0 12px 12px;
+        padding: 8px 10px;
+        border: 1px solid #bdbdbd;
+        border-radius: 2px;
+        outline: 0;
+        resize: vertical;
+        color: #424242;
+        background: #fff;
+        font-family: Menlo, Monaco, Consolas, monospace;
+        font-size: 12px;
+        line-height: 1.5;
+        overflow: auto;
+        scrollbar-width: none;
+        white-space: pre;
+      }
+
+      .key-area::-webkit-scrollbar {
+        display: none;
+      }
+
+      .key-area:focus {
+        border-color: var(--blue);
+      }
+
+      .key-area[hidden] {
+        display: none;
+      }
+
+      /* 底部提示区 */
+      .tip-banner {
+        margin-top: 20px;
+        padding: 12px 16px;
+        border: 1px solid #ffe0b2;
+        color: #e65100;
+        background: #fff3e0;
+      }
+
+      .jwt-notes {
+        margin-top: 16px;
+        padding: 4px 2px;
+        color: var(--ink);
+        line-height: 1.9;
+      }
+
+      .jwt-notes ol {
+        margin: 0;
+        padding-left: 22px;
+      }
+
+      .jwt-notes li {
+        margin-bottom: 4px;
+      }
+
+      .jwt-notes .field-list {
+        margin: 0;
+        padding-left: 22px;
+        list-style: none;
+      }
+
+      @media (max-width: 840px) {
+        .jwt-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .jwt-grid .editor-panel {
+          min-height: 0;
+        }
+
+        #token-text {
+          min-height: 220px;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="page">
+      <nav class="top-nav" aria-label="JWT 工具导航">
+        <a class="active" href="#jwt">jwt解密/加密</a>
+      </nav>
+
+      <main class="workspace" id="jwt">
+        <h1>jwt解密/加密</h1>
+
+        <section class="jwt-grid" aria-label="JWT 编辑区域">
+          <!-- 编码区域 -->
+          <div class="editor-panel">
+            <div class="panel-label">编码区域</div>
+            <div class="field-head">
+              <span>JWT Token</span>
+              <span class="actions">
+                <button class="mini-btn" type="button" id="copy-token"><span class="icon">⧉</span>复制</button>
+              </span>
+            </div>
+            <div class="editor-body">
+              <textarea id="token-text" spellcheck="false" aria-label="JWT Token"></textarea>
+            </div>
+          </div>
+
+          <!-- 操作区域 -->
+          <div class="editor-panel">
+            <div class="panel-label">操作区域</div>
+            <div class="ops-body">
+              <div>
+                <label for="alg-select">签名算法：</label>
+                <select id="alg-select">
+                  <option value="HS256" selected>HS256</option>
+                  <option value="HS384">HS384</option>
+                  <option value="HS512">HS512</option>
+                  <option value="RS256">RS256</option>
+                  <option value="RS384">RS384</option>
+                  <option value="RS512">RS512</option>
+                  <option value="ES256">ES256</option>
+                  <option value="ES384">ES384</option>
+                  <option value="ES512">ES512</option>
+                  <option value="PS256">PS256</option>
+                  <option value="PS384">PS384</option>
+                  <option value="PS512">PS512</option>
+                </select>
+              </div>
+              <button class="ops-btn" type="button" id="encode-btn">⬅ 编码</button>
+              <button class="ops-btn" type="button" id="decode-btn">➡ 解码</button>
+              <button class="ops-btn" type="button" id="verify-btn">✔ 校验</button>
+              <a class="ops-link" href="../convert/time.html">Unix 时间互换</a>
+              <p id="verify-msg" role="status" aria-live="polite"></p>
+            </div>
+          </div>
+
+          <!-- 解码区域 -->
+          <div class="editor-panel">
+            <div class="panel-label">解码区域</div>
+
+            <div class="field-head decode-divider">
+              <span>头部/Header</span>
+              <span class="actions">
+                <button class="mini-btn" type="button" id="rand-header"><span class="icon">⟳</span>随机</button>
+                <button class="mini-btn" type="button" id="copy-header"><span class="icon">⧉</span>复制</button>
+              </span>
+            </div>
+            <div class="code-view" contenteditable="true" spellcheck="false" id="header-json" aria-label="头部 Header JSON"></div>
+
+            <div class="field-head decode-divider">
+              <span>载荷/Payload</span>
+              <span class="actions">
+                <button class="mini-btn" type="button" id="rand-payload"><span class="icon">⟳</span>随机</button>
+                <button class="mini-btn" type="button" id="copy-payload"><span class="icon">⧉</span>复制</button>
+              </span>
+            </div>
+            <div class="code-view" contenteditable="true" spellcheck="false" id="payload-json" aria-label="载荷 Payload JSON"></div>
+
+            <div class="field-head decode-divider">
+              <span id="secret-label">对称密钥</span>
+              <span class="actions">
+                <button class="mini-btn" type="button" id="rand-secret"><span class="icon">⟳</span>随机</button>
+                <button class="mini-btn" type="button" id="gen-keypair" hidden><span class="icon">⟳</span>生成密钥对</button>
+              </span>
+            </div>
+            <input type="text" id="secret-input" value="bejson" aria-label="对称密钥" />
+            <textarea id="priv-key" class="key-area" spellcheck="false" hidden placeholder="私钥（PEM / PKCS#8），用于「编码」签名"></textarea>
+            <textarea id="pub-key" class="key-area" spellcheck="false" hidden placeholder="公钥（PEM / SPKI），用于「校验」签名"></textarea>
+          </div>
+        </section>
+
+        <div class="tip-banner">提示：我们不记录token，所有验证和调试都在客户端上进行！</div>
+
+        <div class="jwt-notes">
+          <ol>
+            <li>JWT 是 JSON Web Tokens 的缩写，是目前最流行的跨域认证解决方案，是一个开放式标准(RFC 7519)，用于在各方之间以JSON对象安全传输信息。</li>
+            <li>JWT 包含了认证信息，请妥善保管！我们不记录和存储你的JWT信息，所有验证和调试都在客户端上进行！</li>
+            <li>
+              Payload 用来存放实际需要传递的数据，JWT 规定的7个官方字段，供选用：
+              <ul class="field-list">
+                <li>iss (Issuer)：签发者</li>
+                <li>sub (Subject)：主题</li>
+                <li>aud (Audience)：接收者</li>
+                <li>exp (Expiration time)：过期时间</li>
+                <li>nbf (Not Before)：生效时间</li>
+                <li>iat (Issued At)：签发时间</li>
+                <li>jti (JWT ID)：编号</li>
+              </ul>
+            </li>
+          </ol>
+        </div>
+      </main>
+    </div>
+
+    <script type="module">
+      // ================= JWT 工具逻辑（纯客户端，基于 jose 库） =================
+      import * as jose from 'https://cdnjs.cloudflare.com/ajax/libs/jose/6.2.12/index.js';
+      const tokenText = document.querySelector('#token-text');
+      const headerView = document.querySelector('#header-json');
+      const payloadView = document.querySelector('#payload-json');
+      const secretInput = document.querySelector('#secret-input');
+      const algSelect = document.querySelector('#alg-select');
+      const verifyMsg = document.querySelector('#verify-msg');
+
+      // ---------- 密钥与签名（jose） ----------
+      const textEncoder = new TextEncoder();
+
+      function isAsym(alg) {
+        return !/^HS\d{3}$/.test(alg);
+      }
+
+      // 编码用密钥：HS* 用对称密钥字符串，其余用 PKCS#8 私钥 PEM
+      async function getSignKey(alg) {
+        if (!isAsym(alg)) return textEncoder.encode(secretInput.value);
+        const pem = privKey.value.trim();
+        if (!pem) throw new Error(`请先粘贴 ${alg} 私钥（PEM），或点击「生成密钥对」`);
+        return jose.importPKCS8(pem, alg);
+      }
+
+      // 校验用密钥：HS* 用对称密钥字符串，其余用 SPKI 公钥 PEM
+      async function getVerifyKey(alg) {
+        if (!isAsym(alg)) return textEncoder.encode(secretInput.value);
+        const pem = pubKey.value.trim();
+        if (!pem) throw new Error(`请先粘贴 ${alg} 公钥（PEM），或点击「生成密钥对」`);
+        return jose.importSPKI(pem, alg);
+      }
+
+      async function generateKeyPair() {
+        const alg = algSelect.value;
+        const { privateKey, publicKey } = await jose.generateKeyPair(alg);
+        privKey.value = await jose.exportPKCS8(privateKey);
+        pubKey.value = await jose.exportSPKI(publicKey);
+      }
+
+      // 按算法切换密钥输入区
+      const secretLabel = document.querySelector('#secret-label');
+      const privKey = document.querySelector('#priv-key');
+      const pubKey = document.querySelector('#pub-key');
+      const randSecretBtn = document.querySelector('#rand-secret');
+      const genKeypairBtn = document.querySelector('#gen-keypair');
+
+      function applyAlgUI() {
+        const alg = algSelect.value;
+        const asym = isAsym(alg);
+        secretInput.hidden = asym;
+        randSecretBtn.hidden = asym;
+        genKeypairBtn.hidden = !asym;
+        privKey.hidden = !asym;
+        pubKey.hidden = !asym;
+        secretLabel.textContent = asym ? '非对称密钥（PEM）' : '对称密钥';
+      }
+
+      genKeypairBtn.addEventListener('click', async () => {
+        verifyMsg.textContent = '';
+        try {
+          await generateKeyPair();
+        } catch (e) {
+          verifyMsg.textContent = `生成密钥对失败：${e.message}`;
+        }
+      });
+
+      // 将头部/Header 的 alg 同步为下拉框当前选择的算法
+      function syncHeaderAlg() {
+        let header;
+        try {
+          header = getViewJson(headerView, '头部/Header');
+        } catch {
+          header = {};
+        }
+        header.alg = algSelect.value;
+        setView(headerView, header);
+      }
+
+      algSelect.addEventListener('change', () => {
+        verifyMsg.textContent = '';
+        applyAlgUI();
+        syncHeaderAlg();
+      });
+
+      // ---------- JSON 语法着色 ----------
+      function escapeHtml(s) {
+        return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      }
+
+      function highlightJson(obj) {
+        const json = JSON.stringify(obj, null, 2);
+        return escapeHtml(json).replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)/g, m => {
+          let cls = 'j-num';
+          if (/^"/.test(m)) cls = /:$/.test(m) ? 'j-key' : 'j-str';
+          else if (/true|false|null/.test(m)) cls = 'j-bool';
+          return `<span class="${cls}">${m}</span>`;
+        });
+      }
+
+      function setView(view, obj) {
+        view.innerHTML = highlightJson(obj);
+      }
+
+      function getViewJson(view, label) {
+        const text = view.innerText.trim();
+        try {
+          return JSON.parse(text);
+        } catch {
+          throw new Error(`${label} 不是合法的 JSON：${text.slice(0, 60)}`);
+        }
+      }
+
+      // 失焦时校验并重新着色
+      [headerView, payloadView].forEach((view, i) => {
+        view.addEventListener('blur', () => {
+          const label = i === 0 ? '头部/Header' : '载荷/Payload';
+          try {
+            setView(view, getViewJson(view, label));
+            verifyMsg.textContent = '';
+          } catch (e) {
+            verifyMsg.textContent = e.message;
+          }
+        });
+      });
+
+      // ---------- 解码 ----------
+      function decodeToken() {
+        const raw = tokenText.value.trim();
+        verifyMsg.textContent = '';
+        if (!raw) return;
+        try {
+          const header = jose.decodeProtectedHeader(raw);
+          const payload = jose.decodeJwt(raw);
+          setView(headerView, header);
+          setView(payloadView, payload);
+          if (header.alg && algSelect.querySelector(`option[value="${header.alg}"]`)) {
+            algSelect.value = header.alg;
+            applyAlgUI();
+          }
+        } catch {
+          verifyMsg.textContent = '解码失败：Header / Payload 不是合法的 Base64URL JSON';
+        }
+      }
+
+      // ---------- 编码 ----------
+      async function encodeToken() {
+        verifyMsg.textContent = '';
+        const header = getViewJson(headerView, '头部/Header');
+        const payload = getViewJson(payloadView, '载荷/Payload');
+        const alg = algSelect.value;
+        header.alg = alg; // 以下拉框选择的算法为准，同步写回 Header
+        setView(headerView, header);
+        const key = await getSignKey(alg);
+        tokenText.value = await new jose.SignJWT(payload).setProtectedHeader(header).sign(key);
+      }
+
+      // ---------- 校验 ----------
+      async function verifyToken() {
+        const raw = tokenText.value.trim();
+        verifyMsg.className = '';
+        if (!raw) {
+          verifyMsg.textContent = '请先输入 JWT Token';
+          return;
+        }
+        let header;
+        try {
+          header = jose.decodeProtectedHeader(raw);
+        } catch {
+          verifyMsg.textContent = 'JWT 格式错误：无法校验';
+          return;
+        }
+        const alg = header.alg || algSelect.value;
+        try {
+          const key = await getVerifyKey(alg);
+          await jose.compactVerify(raw, key); // 仅校验 JWS 签名，exp/nbf 在下面以提示形式展示
+        } catch (e) {
+          if (e && e.code === 'ERR_JWS_SIGNATURE_VERIFICATION_FAILED') {
+            verifyMsg.textContent = `✘ 签名校验失败（${alg}）：请确认${isAsym(alg) ? '公钥与私钥是否配对' : '对称密钥是否正确'}`;
+            return;
+          }
+          verifyMsg.textContent = `校验出错：${e.message}`;
+          return;
+        }
+        let payload = null;
+        try {
+          payload = jose.decodeJwt(raw);
+        } catch {}
+        const now = Math.floor(Date.now() / 1000);
+        const notes = [];
+        if (payload) {
+          if (typeof payload.exp === 'number' && now >= payload.exp) notes.push('⚠ 该 Token 已过期（exp）');
+          if (typeof payload.nbf === 'number' && now < payload.nbf) notes.push('⚠ 该 Token 尚未生效（nbf）');
+        }
+        verifyMsg.className = 'ok';
+        verifyMsg.textContent = ['✔ 签名校验通过（' + alg + '）', ...notes].join('\n');
+      }
+
+      // ---------- 随机数据 ----------
+      function randomString(len = 12) {
+        const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        const bytes = crypto.getRandomValues(new Uint8Array(len));
+        return Array.from(bytes, b => chars[b % chars.length]).join('');
+      }
+
+      function defaultPayload() {
+        const now = Math.floor(Date.now() / 1000);
+        return { username: 'www.bejson.com', sub: 'demo', iat: now, nbf: now, exp: now + 86400 };
+      }
+
+      // ---------- 复制 ----------
+      async function copyToClipboard(text) {
+        if (!text) return;
+        await navigator.clipboard.writeText(text);
+      }
+
+      // ---------- 事件绑定 ----------
+      document.querySelector('#encode-btn').addEventListener('click', async () => {
+        try {
+          await encodeToken();
+        } catch (e) {
+          verifyMsg.textContent = e.message;
+        }
+      });
+      document.querySelector('#decode-btn').addEventListener('click', decodeToken);
+      document.querySelector('#verify-btn').addEventListener('click', async () => {
+        try {
+          await verifyToken();
+        } catch (e) {
+          verifyMsg.textContent = `校验出错：${e.message}`;
+        }
+      });
+
+      // 随机头部：alg 与下拉框保持一致，其余键值对随机生成
+      function randomHeader() {
+        const header = { alg: algSelect.value };
+        if (Math.random() < 0.8) header.typ = 'JWT';
+        const optional = ['cty', 'kid', 'jku', 'url'];
+        optional.forEach(k => {
+          if (Math.random() < 0.4) {
+            header[k] = k === 'jku' || k === 'url' ? `https://rootexit.github.io/${randomString(8)}` : randomString(10);
+          }
+        });
+        return header;
+      }
+
+      document.querySelector('#rand-header').addEventListener('click', () => {
+        setView(headerView, randomHeader());
+      });
+      document.querySelector('#rand-payload').addEventListener('click', () => {
+        setView(payloadView, { ...defaultPayload(), jti: randomString() });
+      });
+      document.querySelector('#rand-secret').addEventListener('click', () => {
+        secretInput.value = randomString(16);
+      });
+
+      document.querySelector('#copy-token').addEventListener('click', () => copyToClipboard(tokenText.value));
+      document.querySelector('#copy-header').addEventListener('click', () => copyToClipboard(headerView.innerText));
+      document.querySelector('#copy-payload').addEventListener('click', () => copyToClipboard(payloadView.innerText));
+
+      // ---------- 初始化：填充示例 Token 并解码 ----------
+      tokenText.value =
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6Ind3dy5iZWpzb24uY29tIiwic3ViIjoiZGVtbyIsImlhdCI6MTc5MTk0NjAzMywibmJmIjoxNzkxOTQ2MDMzLCJleHAiOjE3OTIwMzI0MzN9.Kao4WGgwr1OC5lCrY8OBJ43QcuU_MpD8-oc4ySRqDoo';
+      applyAlgUI();
+      decodeToken();
+    </script>
+  </body>
+</html>

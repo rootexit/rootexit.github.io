@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>获取IP信息</title>
+    <link rel="stylesheet" href="../css/base.css" />
+    <link rel="stylesheet" href="../css/layout.css" />
+    <link rel="stylesheet" href="../css/editor.css" />
+    <link rel="stylesheet" href="../css/responsive.css" />
+    <style>
+      /* ===== 本页差异样式（通用部分已提取至 ../css/*.css） ===== */
+      .ip-panel {
+        min-height: 420px;
+      }
+
+      .ip-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .ops-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 40px;
+        padding: 0 22px;
+        border: 1px solid #bdbdbd;
+        border-radius: 2px;
+        color: #424242;
+        background: #fff;
+        font-size: 15px;
+      }
+
+      .ops-btn:hover {
+        color: #fff;
+        background: var(--blue);
+        border-color: var(--blue);
+      }
+
+      .ops-btn:disabled {
+        color: #9e9e9e;
+        background: #f5f5f5;
+        border-color: #d5d5d5;
+        cursor: default;
+      }
+
+      #fetch-status {
+        margin: 0;
+        color: #d32f2f;
+        font-size: 13px;
+        word-break: break-all;
+      }
+
+      #fetch-status.ok {
+        color: #2e7d32;
+      }
+
+      #fetch-status:empty {
+        display: none;
+      }
+
+      /* 字段列表 */
+      .ip-fields {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0 28px;
+        margin: 0;
+        padding: 16px 20px 8px;
+      }
+
+      .ip-field {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        padding: 9px 0;
+        border-bottom: 1px dashed var(--line);
+      }
+
+      .ip-field dt {
+        flex: 0 0 84px;
+        color: var(--muted);
+      }
+
+      .ip-field dd {
+        margin: 0;
+        min-width: 0;
+        color: var(--ink);
+        font-family: Menlo, Monaco, Consolas, monospace;
+        overflow-wrap: anywhere;
+      }
+
+      .ip-field dd a {
+        color: var(--blue);
+        text-decoration: none;
+      }
+
+      .ip-field dd a:hover {
+        text-decoration: underline;
+      }
+
+      /* 原始 JSON 视图 */
+      .json-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 10px 20px;
+        border-top: 1px solid var(--line);
+        color: var(--ink);
+        font-weight: 600;
+      }
+
+      .mini-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 10px;
+        border: 1px solid #bdbdbd;
+        border-radius: 2px;
+        color: #424242;
+        background: #fff;
+        font-size: 13px;
+      }
+
+      .mini-btn:hover {
+        color: #fff;
+        background: var(--blue);
+        border-color: var(--blue);
+      }
+
+      .mini-btn .icon {
+        font-size: 12px;
+        line-height: 1;
+      }
+
+      .code-view {
+        min-height: 150px;
+        max-height: 260px;
+        margin: 0 20px 16px;
+        padding: 12px 14px;
+        border: 1px solid var(--line);
+        overflow: auto;
+        scrollbar-width: none;
+        color: #424242;
+        font-family: Menlo, Monaco, Consolas, monospace;
+        font-size: 14px;
+        line-height: 1.7;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+
+      .code-view::-webkit-scrollbar {
+        display: none;
+      }
+
+      .code-view .j-key {
+        color: #a31515;
+      }
+
+      .code-view .j-str {
+        color: #c41a16;
+      }
+
+      .code-view .j-num {
+        color: #1a7f37;
+      }
+
+      .code-view .j-bool {
+        color: #0000ff;
+      }
+
+      /* 底部提示区 */
+      .tip-banner {
+        margin-top: 20px;
+        padding: 12px 16px;
+        border: 1px solid #ffe0b2;
+        color: #e65100;
+        background: #fff3e0;
+      }
+
+      @media (max-width: 840px) {
+        .ip-fields {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="page">
+      <nav class="top-nav" aria-label="IP 工具导航">
+        <a class="active" href="#ip">获取IP信息</a>
+      </nav>
+
+      <main class="workspace" id="ip">
+        <h1>获取IP信息</h1>
+
+        <section class="editor-panel ip-panel" aria-label="IP 信息">
+          <div class="panel-label">当前网络的 IP 信息</div>
+
+          <div class="ip-toolbar">
+            <button class="ops-btn" type="button" id="fetch-btn">⟳ 获取信息</button>
+            <p id="fetch-status" role="status" aria-live="polite"></p>
+          </div>
+
+          <dl class="ip-fields" id="ip-fields"></dl>
+
+          <div class="json-head">
+            <span>原始响应（JSON）</span>
+            <span class="actions">
+              <button class="mini-btn" type="button" id="copy-json"><span class="icon">⧉</span>复制</button>
+            </span>
+          </div>
+          <div class="code-view" id="json-view"></div>
+        </section>
+
+        <div class="tip-banner">提示：IP 数据来自第三方服务 ipinfo.io，本工具不记录任何请求信息，查询在你的浏览器中直接发起！</div>
+      </main>
+    </div>
+
+    <script>
+      // ================= 获取 IP 信息（纯客户端，调用 https://ipinfo.io/json） =================
+      const fetchBtn = document.querySelector('#fetch-btn');
+      const fetchStatus = document.querySelector('#fetch-status');
+      const fieldsBox = document.querySelector('#ip-fields');
+      const jsonView = document.querySelector('#json-view');
+
+      const API_URL = 'https://ipinfo.io/json';
+
+      // 字段展示配置：[key, 中文名]；loc 拆成经纬度展示，readme 不展示
+      const FIELDS = [
+        ['ip', 'IP 地址'],
+        ['hostname', '主机名'],
+        ['city', '城市'],
+        ['region', '省份/州'],
+        ['country', '国家'],
+        ['loc', '经纬度'],
+        ['org', '运营商/组织'],
+        ['postal', '邮政编码'],
+        ['timezone', '时区']
+      ];
+
+      function escapeHtml(s) {
+        return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      }
+
+      // ---------- JSON 语法着色 ----------
+      function highlightJson(obj) {
+        const json = JSON.stringify(obj, null, 2);
+        return escapeHtml(json).replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)/g, m => {
+          let cls = 'j-num';
+          if (/^"/.test(m)) cls = /:$/.test(m) ? 'j-key' : 'j-str';
+          else if (/true|false|null/.test(m)) cls = 'j-bool';
+          return `<span class="${cls}">${m}</span>`;
+        });
+      }
+
+      // ---------- 渲染字段列表 ----------
+      function renderFields(data) {
+        fieldsBox.innerHTML = FIELDS.map(([key, label]) => {
+          const val = data[key];
+          if (val === undefined || val === null || val === '') return '';
+          let text = String(val);
+          if (key === 'loc') {
+            const [lat, lng] = text.split(',');
+            text = `${lat}, ${lng} <a href="https://www.google.com/maps?q=${encodeURIComponent(text)}" target="_blank" rel="noopener">在地图中查看</a>`;
+          } else {
+            text = escapeHtml(text);
+          }
+          return `<div class="ip-field"><dt>${label}</dt><dd>${text}</dd></div>`;
+        }).join('');
+      }
+
+      // ---------- 获取 IP 信息 ----------
+      let lastRaw = '';
+
+      async function fetchIpInfo() {
+        fetchStatus.className = '';
+        fetchStatus.textContent = '';
+        fetchBtn.disabled = true;
+        fetchBtn.textContent = '⏳ 获取中…';
+        try {
+          const res = await fetch(API_URL, { cache: 'no-store' });
+          if (!res.ok) throw new Error(`接口返回 ${res.status}`);
+          const data = await res.json();
+          lastRaw = JSON.stringify(data, null, 2);
+          renderFields(data);
+          jsonView.innerHTML = highlightJson(data);
+          fetchStatus.className = 'ok';
+          fetchStatus.textContent = `✔ 获取成功（${new Date().toLocaleTimeString()}）`;
+        } catch (e) {
+          fetchStatus.textContent = `✘ 获取失败：${e.message}，请检查网络后重试`;
+        } finally {
+          fetchBtn.disabled = false;
+          fetchBtn.textContent = '⟳ 获取信息';
+        }
+      }
+
+      // ---------- 复制 ----------
+      document.querySelector('#copy-json').addEventListener('click', async () => {
+        if (!lastRaw) return;
+        await navigator.clipboard.writeText(lastRaw);
+      });
+
+      fetchBtn.addEventListener('click', fetchIpInfo);
+
+      // 页面加载后自动获取一次
+      fetchIpInfo();
+    </script>
+  </body>
+</html>

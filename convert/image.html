@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>图片压缩</title>
+    <link rel="stylesheet" href="../css/base.css" />
+    <link rel="stylesheet" href="../css/layout.css" />
+    <link rel="stylesheet" href="../css/editor.css" />
+    <link rel="stylesheet" href="../css/responsive.css" />
+    <style>
+      /* ===== 本页差异样式（通用部分已提取至 ../css/*.css） ===== */
+      .img-grid {
+        display: grid;
+        grid-template-columns: 0.9fr 1.2fr 1.2fr;
+        gap: 20px;
+        align-items: stretch;
+      }
+
+      .img-grid .editor-panel {
+        min-height: 520px;
+      }
+
+      /* 面板内的字段标题行 */
+      .field-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--line);
+        color: var(--ink);
+        font-weight: 600;
+      }
+
+      .field-head .actions {
+        display: flex;
+        gap: 8px;
+      }
+
+      .mini-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 10px;
+        border: 1px solid #bdbdbd;
+        border-radius: 2px;
+        color: #424242;
+        background: #fff;
+        font-size: 13px;
+      }
+
+      .mini-btn:hover {
+        color: #fff;
+        background: var(--blue);
+        border-color: var(--blue);
+      }
+
+      .mini-btn .icon {
+        font-size: 12px;
+        line-height: 1;
+      }
+
+      /* 参数区 */
+      .ops-body {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        padding: 14px;
+      }
+
+      .ops-body label {
+        display: block;
+        color: var(--ink);
+      }
+
+      .ops-body .hint {
+        margin: 4px 0 0;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .ops-body select,
+      .ops-body input[type='number'],
+      .ops-body input[type='text'] {
+        width: 100%;
+        padding: 8px 10px;
+        border: 1px solid #bdbdbd;
+        border-radius: 2px;
+        outline: 0;
+        color: #424242;
+        background: #fff;
+        font: inherit;
+      }
+
+      .ops-body select:focus,
+      .ops-body input[type='number']:focus,
+      .ops-body input[type='text']:focus {
+        border-color: var(--blue);
+      }
+
+      .ops-body .check-line {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .ops-body .check-line label {
+        display: inline;
+      }
+
+      .ops-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        width: 100%;
+        min-height: 40px;
+        padding: 0 12px;
+        border: 1px solid #bdbdbd;
+        border-radius: 2px;
+        color: #424242;
+        background: #fff;
+        font-size: 15px;
+      }
+
+      .ops-btn:hover {
+        color: #fff;
+        background: var(--blue);
+        border-color: var(--blue);
+      }
+
+      .ops-btn:disabled {
+        color: #9e9e9e;
+        background: #f5f5f5;
+        border-color: #d5d5d5;
+        cursor: default;
+      }
+
+      #msg {
+        margin: 0;
+        color: #d32f2f;
+        font-size: 13px;
+        white-space: pre-wrap;
+        word-break: break-all;
+      }
+
+      #msg.ok {
+        color: #2e7d32;
+      }
+
+      #msg:empty {
+        display: none;
+      }
+
+      /* 进度条 */
+      .progress-track {
+        height: 10px;
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        background: #f5f5f5;
+        overflow: hidden;
+      }
+
+      .progress-fill {
+        width: 0;
+        height: 100%;
+        background: var(--blue);
+        transition: width 0.2s;
+      }
+
+      #progress-text {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+        text-align: right;
+      }
+
+      #progress-text:empty {
+        display: none;
+      }
+
+      /* 预览区 */
+      .preview-body {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 0;
+        padding: 14px;
+        overflow: auto;
+        scrollbar-width: none;
+      }
+
+      .preview-body::-webkit-scrollbar {
+        display: none;
+      }
+
+      .preview-body img {
+        max-width: 100%;
+        max-height: 400px;
+        object-fit: contain;
+      }
+
+      .preview-empty {
+        color: #bdbdbd;
+        font-size: 14px;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+
+      .file-meta {
+        width: 100%;
+        padding: 10px 12px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        background: var(--panel);
+        font-size: 13px;
+        overflow-wrap: anywhere;
+      }
+
+      .file-meta b {
+        color: var(--ink);
+      }
+
+      .file-meta:empty {
+        display: none;
+      }
+
+      /* 底部提示区 */
+      .tip-banner {
+        margin-top: 20px;
+        padding: 12px 16px;
+        border: 1px solid #ffe0b2;
+        color: #e65100;
+        background: #fff3e0;
+      }
+
+      @media (max-width: 840px) {
+        .img-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .img-grid .editor-panel {
+          min-height: 0;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="page">
+      <nav class="top-nav" aria-label="图片工具导航">
+        <a class="active" href="#image">图片压缩</a>
+      </nav>
+
+      <main class="workspace" id="image">
+        <h1>图片压缩</h1>
+
+        <section class="img-grid" aria-label="图片压缩区域">
+          <!-- 参数区域 -->
+          <div class="editor-panel">
+            <div class="panel-label">压缩参数</div>
+            <div class="ops-body">
+              <div>
+                <label for="opt-file-type">转换类型：</label>
+                <select id="opt-file-type">
+                  <option value="" selected>保持原类型</option>
+                  <option value="image/jpeg">JPEG</option>
+                  <option value="image/png">PNG</option>
+                  <option value="image/webp">WebP</option>
+                </select>
+              </div>
+              <div>
+                <label for="opt-max-size">目标大小（MB）：</label>
+                <input type="number" id="opt-max-size" min="0.01" step="0.01" placeholder="留空表示不限" />
+                <p class="hint">压缩到不超过该文件大小（maxSizeMB）</p>
+              </div>
+              <div>
+                <label for="opt-max-width">最大边长（px）：</label>
+                <input type="number" id="opt-max-width" min="1" step="1" placeholder="留空表示不限" />
+                <p class="hint">长边超过该值时按比例缩放（maxWidthOrHeight）</p>
+              </div>
+              <div>
+                <label for="opt-initial-quality">初始质量：</label>
+                <input type="number" id="opt-initial-quality" min="0" max="1" step="0.05" placeholder="0 ~ 1，默认 1" />
+                <p class="hint">首次压缩尝试使用的编码质量（initialQuality）</p>
+              </div>
+              <div>
+                <label for="opt-max-iteration">最大迭代次数：</label>
+                <input type="number" id="opt-max-iteration" min="1" step="1" placeholder="默认 10" />
+                <p class="hint">达到目标大小的最大压缩轮数（maxIteration）</p>
+              </div>
+              <div>
+                <label for="opt-exif">EXIF 方向：</label>
+                <select id="opt-exif">
+                  <option value="" selected>自动读取</option>
+                  <option value="1">1 - 正常</option>
+                  <option value="3">3 - 旋转 180°</option>
+                  <option value="6">6 - 顺时针 90°</option>
+                  <option value="8">8 - 逆时针 90°</option>
+                </select>
+              </div>
+              <div class="check-line">
+                <input type="checkbox" id="opt-keep-resolution" />
+                <label for="opt-keep-resolution">始终保留分辨率（仅按质量压缩，不缩放）</label>
+              </div>
+              <div class="check-line">
+                <input type="checkbox" id="opt-preserve-exif" />
+                <label for="opt-preserve-exif">保留 EXIF 元数据（JPEG 相机信息等）</label>
+              </div>
+              <div class="check-line">
+                <input type="checkbox" id="opt-worker" checked />
+                <label for="opt-worker">使用 Web Worker（避免界面卡顿）</label>
+              </div>
+              <div>
+                <label for="opt-lib-url">Worker 库地址（libURL）：</label>
+                <input
+                  type="text"
+                  id="opt-lib-url"
+                  value="https://cdnjs.cloudflare.com/ajax/libs/browser-image-compression/2.0.2/browser-image-compression.js"
+                  placeholder="留空使用官方默认 CDN"
+                />
+                <p class="hint">勾选 Web Worker 时，Worker 内加载的本库脚本地址</p>
+              </div>
+              <button class="ops-btn" type="button" id="pick-btn">📂 选择图片</button>
+              <input type="file" id="file-input" accept="image/*" hidden />
+              <button class="ops-btn" type="button" id="compress-btn" disabled>⬇ 开始压缩</button>
+              <button class="ops-btn" type="button" id="abort-btn" hidden>✖ 取消压缩</button>
+              <div class="progress-track" hidden id="progress-wrap"><div class="progress-fill" id="progress-fill"></div></div>
+              <p id="progress-text"></p>
+              <p id="msg" role="status" aria-live="polite"></p>
+            </div>
+          </div>
+
+          <!-- 原图预览 -->
+          <div class="editor-panel">
+            <div class="field-head"><span>原图预览</span></div>
+            <div class="preview-body" id="src-preview"><span class="preview-empty">尚未选择图片</span></div>
+            <div class="file-meta" id="src-meta"></div>
+          </div>
+
+          <!-- 压缩结果预览 -->
+          <div class="editor-panel">
+            <div class="field-head">
+              <span>压缩结果</span>
+              <span class="actions">
+                <button class="mini-btn" type="button" id="download-btn" hidden><span class="icon">⬇</span>下载</button>
+              </span>
+            </div>
+            <div class="preview-body" id="out-preview"><span class="preview-empty">压缩结果将显示在这里</span></div>
+            <div class="file-meta" id="out-meta"></div>
+          </div>
+        </section>
+
+        <div class="tip-banner">提示：图片压缩完全在你的浏览器本地完成（基于 browser-image-compression），不会上传到任何服务器！</div>
+      </main>
+    </div>
+
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/browser-image-compression/2.0.2/browser-image-compression.js"
+      integrity="sha512-AqNGerESFmfQYTtyWZDQv8WSi4ICG16z/O+8JyAD5Iaafp+fnAU4xbJipYZ0bU9DrhXAsx1Vylli0oebd9l55g=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
+    <script>
+      // ================= 图片压缩逻辑（纯客户端，基于 browser-image-compression） =================
+      const fileInput = document.querySelector('#file-input');
+      const pickBtn = document.querySelector('#pick-btn');
+      const compressBtn = document.querySelector('#compress-btn');
+      const abortBtn = document.querySelector('#abort-btn');
+      const msg = document.querySelector('#msg');
+      const progressWrap = document.querySelector('#progress-wrap');
+      const progressFill = document.querySelector('#progress-fill');
+      const progressText = document.querySelector('#progress-text');
+      const srcPreview = document.querySelector('#src-preview');
+      const srcMeta = document.querySelector('#src-meta');
+      const outPreview = document.querySelector('#out-preview');
+      const outMeta = document.querySelector('#out-meta');
+      const downloadBtn = document.querySelector('#download-btn');
+
+      let currentFile = null;
+      let srcUrl = '';
+      let outUrl = '';
+      let outName = '';
+
+      function formatSize(bytes) {
+        if (bytes < 1024) return `${bytes} B`;
+        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+        return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+      }
+
+      // ---------- 选择文件 ----------
+      pickBtn.addEventListener('click', () => fileInput.click());
+
+      fileInput.addEventListener('change', () => {
+        const file = fileInput.files[0];
+        if (!file) return;
+        msg.textContent = '';
+        msg.className = '';
+        currentFile = file;
+        if (srcUrl) URL.revokeObjectURL(srcUrl);
+        srcUrl = URL.createObjectURL(file);
+        srcPreview.innerHTML = `<img src="${srcUrl}" alt="原图预览" />`;
+        srcMeta.innerHTML = `<b>${file.name}</b>　${formatSize(file.size)}`;
+        compressBtn.disabled = false;
+        // 清空上一次结果
+        if (outUrl) URL.revokeObjectURL(outUrl);
+        outUrl = '';
+        outPreview.innerHTML = '<span class="preview-empty">压缩结果将显示在这里</span>';
+        outMeta.textContent = '';
+        downloadBtn.hidden = true;
+        progressWrap.hidden = true;
+        progressFill.style.width = '0';
+        progressText.textContent = '';
+      });
+
+      // ---------- 收集用户选择的 Options ----------
+      function collectOptions() {
+        const opts = {};
+        const maxSize = parseFloat(document.querySelector('#opt-max-size').value);
+        if (isFinite(maxSize) && maxSize > 0) opts.maxSizeMB = maxSize;
+        const maxWidth = parseFloat(document.querySelector('#opt-max-width').value);
+        if (isFinite(maxWidth) && maxWidth > 0) opts.maxWidthOrHeight = maxWidth;
+        const fileType = document.querySelector('#opt-file-type').value;
+        if (fileType) opts.fileType = fileType;
+        const exif = document.querySelector('#opt-exif').value;
+        if (exif) opts.exifOrientation = parseInt(exif, 10);
+        const iq = parseFloat(document.querySelector('#opt-initial-quality').value);
+        if (isFinite(iq) && iq >= 0 && iq <= 1) opts.initialQuality = iq;
+        const mi = parseInt(document.querySelector('#opt-max-iteration').value, 10);
+        if (isFinite(mi) && mi > 0) opts.maxIteration = mi;
+        const libURL = document.querySelector('#opt-lib-url').value.trim();
+        if (libURL) opts.libURL = libURL;
+        opts.alwaysKeepResolution = document.querySelector('#opt-keep-resolution').checked;
+        opts.preserveExif = document.querySelector('#opt-preserve-exif').checked;
+        opts.useWebWorker = document.querySelector('#opt-worker').checked;
+        return opts;
+      }
+
+      // ---------- 压缩 ----------
+      let abortController = null;
+
+      async function doCompress() {
+        if (!currentFile) return;
+        msg.textContent = '';
+        msg.className = '';
+        compressBtn.disabled = true;
+        abortBtn.hidden = false;
+        progressWrap.hidden = false;
+        progressFill.style.width = '0';
+        progressText.textContent = '0%';
+        const options = collectOptions();
+        options.onProgress = p => {
+          progressFill.style.width = `${p}%`;
+          progressText.textContent = `${p}%`;
+        };
+        abortController = new AbortController();
+        options.signal = abortController.signal;
+        try {
+          const blob = await imageCompression(currentFile, options);
+          if (outUrl) URL.revokeObjectURL(outUrl);
+          outUrl = URL.createObjectURL(blob);
+          outPreview.innerHTML = `<img src="${outUrl}" alt="压缩结果预览" />`;
+          const ext = (blob.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
+          outName = `${currentFile.name.replace(/\.[^.]+$/, '')}-compressed.${ext}`;
+          const saved = currentFile.size > 0 ? Math.max(0, Math.round((1 - blob.size / currentFile.size) * 100)) : 0;
+          outMeta.innerHTML = `<b>${outName}</b>　${formatSize(blob.size)}（原 ${formatSize(currentFile.size)}，减少 ${saved}%）`;
+          downloadBtn.hidden = false;
+          progressFill.style.width = '100%';
+          progressText.textContent = '100%';
+          msg.className = 'ok';
+          msg.textContent = '✔ 压缩完成';
+        } catch (e) {
+          const aborted = abortController && abortController.signal.aborted;
+          msg.textContent = aborted ? '已取消压缩' : `✘ 压缩失败：${e.message || e}`;
+        } finally {
+          compressBtn.disabled = false;
+          abortBtn.hidden = true;
+          abortController = null;
+        }
+      }
+
+      compressBtn.addEventListener('click', doCompress);
+
+      // ---------- 取消压缩（signal: AbortSignal） ----------
+      abortBtn.addEventListener('click', () => {
+        if (abortController) abortController.abort();
+      });
+
+      // ---------- 下载 ----------
+      downloadBtn.addEventListener('click', () => {
+        if (!outUrl) return;
+        const a = document.createElement('a');
+        a.href = outUrl;
+        a.download = outName;
+        a.click();
+      });
+    </script>
+  </body>
+</html>

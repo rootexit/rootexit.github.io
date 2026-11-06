@@ -359,6 +359,7 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.15.2/viewer.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.2/jszip.min.js"></script>
     <script type="module">
       // ================= PDF 转图片逻辑（纯客户端，基于 pdf.js ESM） =================
       import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/6.4.299/pdf.min.mjs';
@@ -462,7 +463,7 @@
             const blob = await new Promise(resolve => canvas.toBlob(resolve, format, quality));
             const name = `${currentFile.name.replace(/\.pdf$/i, '')}-第${pageNum}页.${ext}`;
             const url = URL.createObjectURL(blob);
-            const item = { name, url };
+            const item = { name, url, blob };
             pageImages.push(item);
 
             const empty = pagesBody.querySelector('.preview-empty');
@@ -505,9 +506,33 @@
         a.click();
       }
 
-      downloadAllBtn.addEventListener('click', () => {
-        // 逐个触发下载（小间隔避免被浏览器拦截）
-        pageImages.forEach((item, i) => setTimeout(() => downloadOne(item), i * 300));
+      // 全部下载（JSZip 打包为 zip）
+      downloadAllBtn.addEventListener('click', async () => {
+        if (!pageImages.length) return;
+        msg.textContent = '';
+        msg.className = '';
+        downloadAllBtn.disabled = true;
+        const oldText = downloadAllBtn.textContent;
+        downloadAllBtn.textContent = '⏳ 打包中…';
+        try {
+          const zip = new JSZip();
+          pageImages.forEach(item => zip.file(item.name, item.blob));
+          const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+          const zipName = `${currentFile.name.replace(/\.pdf$/i, '')}-图片.zip`;
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = zipName;
+          a.click();
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+          msg.className = 'ok';
+          msg.textContent = `✔ 已打包 ${pageImages.length} 张图片为 ${zipName}（${formatSize(blob.size)}）`;
+        } catch (e) {
+          msg.textContent = `✘ 打包失败：${e.message || e}`;
+        } finally {
+          downloadAllBtn.disabled = false;
+          downloadAllBtn.textContent = oldText;
+        }
       });
 
       convertBtn.addEventListener('click', convert);

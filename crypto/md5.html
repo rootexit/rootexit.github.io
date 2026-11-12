@@ -143,6 +143,7 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+    <script src="../js/clipboard.js"></script>
     <script>
       // ---------- 行号 ----------
       const input = document.querySelector('#input-text');
@@ -185,13 +186,18 @@
         Object.values(outputs).forEach(el => (el.value = ''));
       });
 
+      const { copyText, bindOutput } = ToolClipboard;
+
       document.querySelectorAll('.copy-btn').forEach(btn => {
         btn.addEventListener('click', async () => {
           const value = btn.parentElement.querySelector('input').value;
           if (!value) return;
-          await navigator.clipboard.writeText(value);
+          await copyText(value);
         });
       });
+
+      // 结果框：Ctrl+A 只全选本框，Ctrl+X 复制内容（只读，剪切 = 复制）
+      Object.values(outputs).forEach(el => bindOutput(el));
     </script>
   </body>
 </html>

@@ -170,7 +170,7 @@
             <div class="panel-label">输出 JSON</div>
             <div class="editor-body">
               <div class="gutter" id="output-gutter" aria-hidden="true">1</div>
-              <pre class="output" id="output-json" aria-live="polite"></pre>
+              <pre class="output" id="output-json" tabindex="0" aria-live="polite"></pre>
             </div>
           </div>
         </section>
@@ -187,6 +187,7 @@
       </main>
     </div>
 
+    <script src="../js/clipboard.js"></script>
     <script>
       const input = document.querySelector('#input-json');
       const output = document.querySelector('#output-json');
@@ -396,10 +397,15 @@
         setOutput('');
         updateInputGutter();
       });
+      const { copyText, bindOutput } = ToolClipboard;
+
       document.querySelector('#copy-button').addEventListener('click', async () => {
         if (!lastOutputText) return;
-        await navigator.clipboard.writeText(lastOutputText);
+        await copyText(lastOutputText);
       });
+
+      // 输出区（只读 pre）：Ctrl+A 只全选结果，Ctrl+X 复制选中内容（剪切 = 复制）
+      bindOutput(output, { getFullText: () => lastOutputText });
 
       updateInputGutter();
       updateOutputGutter();

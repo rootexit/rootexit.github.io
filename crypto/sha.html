@@ -191,6 +191,7 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+    <script src="../js/clipboard.js"></script>
     <script>
       // ================= 页面逻辑（哈希算法统一使用 CryptoJS） =================
       const input = document.querySelector('#input-text');
@@ -296,10 +297,15 @@
         URL.revokeObjectURL(url);
       });
 
+      const { copyText, bindOutput } = ToolClipboard;
+
       document.querySelector('#copy-button').addEventListener('click', async () => {
         if (!output.value) return;
-        await navigator.clipboard.writeText(output.value);
+        await copyText(output.value);
       });
+
+      // 输出区：Ctrl+A 只全选结果，Ctrl+X 复制选中内容（只读，剪切 = 复制）
+      bindOutput(output);
     </script>
   </body>
 </html>

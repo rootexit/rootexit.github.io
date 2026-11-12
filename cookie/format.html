@@ -50,7 +50,7 @@
         font-family: Menlo, Monaco, Consolas, 'Courier New', monospace;
         font-size: 14px;
         line-height: 1.6;
-        resize: vertical;
+        resize: none;
       }
 
       textarea::placeholder {
@@ -261,6 +261,7 @@
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+    <script src="../js/clipboard.js"></script>
     <script>
       const cookieInput = document.querySelector('#cookie-input');
       const cookieOutput = document.querySelector('#cookie-output');
@@ -356,24 +357,22 @@
         toast('已清空输入框', 'success');
       }
 
-      // ---------- 复制结果到剪贴板 ----------
+      const { copyText, bindOutput } = ToolClipboard;
+
       async function copyResult() {
         if (!cookieOutput.value) {
           toast('没有可复制的内容！', 'err');
           return;
         }
 
-        try {
-          await navigator.clipboard.writeText(cookieOutput.value);
-          toast('已复制到剪贴板！', 'success');
-        } catch (err) {
-          // 兼容不支持 Clipboard API 的环境
-          cookieOutput.select();
-          cookieOutput.setSelectionRange(0, 99999);
-          document.execCommand('copy');
-          toast('已复制到剪贴板！', 'success');
-        }
+        const ok = await copyText(cookieOutput.value);
+        toast(ok ? '已复制到剪贴板！' : '复制失败，请手动选择复制', ok ? 'success' : 'err');
       }
+
+      // 输出区：Ctrl+A 只全选结果，Ctrl+X 复制选中内容（只读，剪切 = 复制）
+      bindOutput(cookieOutput, {
+        onCopy: ok => toast(ok ? '已复制到剪贴板！' : '复制失败', ok ? 'success' : 'err')
+      });
 
       // ---------- 事件绑定 ----------
       document.querySelector('#btn-convert').addEventListener('click', convertToJSON);
